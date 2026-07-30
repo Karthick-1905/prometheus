@@ -10,7 +10,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import alerts, demand, health, ml, simulate, telemetry
+from app.api.routes import (
+    alerts,
+    auth,
+    contracts,
+    dealers,
+    demand,
+    fleet,
+    health,
+    live,
+    ml,
+    simulate,
+    sites,
+    telemetry,
+)
 from app.config import get_settings
 from app.services.anomaly_detection.predictor import predictor
 
@@ -34,7 +47,7 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         description=(
             "Unified FastAPI backend: hybrid anomaly detection (rules + Isolation Forest), "
-            "telemetry ingestion, alerts, and demand-forecasting scaffold.\n\n"
+            "fleet dashboard APIs, telemetry ingestion, alerts, and demand forecasting.\n\n"
             "DB: Neon PostgreSQL via SQLAlchemy + Alembic."
         ),
         lifespan=lifespan,
@@ -46,12 +59,20 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Existing routes (unchanged prefixes for demand / ml / simulate)
     app.include_router(health.router)
     app.include_router(ml.router)
     app.include_router(alerts.router)
     app.include_router(telemetry.router)
     app.include_router(simulate.router)
-    app.include_router(demand.router)
+    app.include_router(demand.router)  # demand forecasting — do not reorder carelessly
+    # Dashboard APIs (fleet / site / dealer / live) — demand router above is untouched
+    app.include_router(auth.router)
+    app.include_router(fleet.router)
+    app.include_router(contracts.router)
+    app.include_router(sites.router)
+    app.include_router(dealers.router)
+    app.include_router(live.router)
     return app
 
 

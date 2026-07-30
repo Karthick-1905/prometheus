@@ -3,7 +3,7 @@
 
 .PHONY: help up down restart logs ps redis-cli \
 	run-subscriber run-publisher run-api \
-	install install-redis
+	install install-redis test
 
 PYTHON   ?= .venv/bin/python
 PIP      ?= .venv/bin/pip
@@ -30,8 +30,9 @@ help:
 	@echo "  make run-subscriber  MQTT → IngestionService (persist + publish)"
 	@echo "  make run-api         FastAPI on :8000"
 	@echo ""
-	@echo "Setup"
+	@echo "Setup / tests"
 	@echo "  make install         pip install -r requirements.txt"
+	@echo "  make test            Run pytest (fleet + demand + unit)"
 	@echo ""
 	@echo "Env defaults:"
 	@echo "  REDIS_URL=$(REDIS_URL)"
@@ -86,3 +87,6 @@ install:
 
 install-redis:
 	$(PIP) install "redis>=5.0.0,<6"
+
+test:
+	$(PYTHON) -m pytest tests/ -q
