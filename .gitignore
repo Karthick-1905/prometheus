@@ -40,5 +40,20 @@ pipeline/telemetry.csv
 *.tsbuildinfo
 next-env.d.ts
 
-# Isolation Forest trained models (generated at runtime)
+# Isolation Forest (legacy TS path)
 /models
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+python-ml/venv/
+python-ml/**/__pycache__/
+
+# Large generated datasets (regenerate with scripts)
+pipeline/telemetry.csv
+annomoly/training-data.csv
+
+# Keep trained sklearn artifacts optional to commit; ignore if huge local copies
+# annomoly/*.joblib

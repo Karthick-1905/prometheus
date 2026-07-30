@@ -1,14 +1,13 @@
 /**
- * scripts/train-isolation-forest.ts
- * -----------------------------------
- * Reads the training CSV from annomoly/training-data.csv,
- * converts each row into a FeatureVector, fits the Isolation Forest,
- * and saves the trained model to annomoly/isolation-forest.json.
+ * scripts/train-isolation-forest.ts  [DEPRECATED]
+ * ------------------------------------------------
+ * Legacy TypeScript Isolation Forest trainer.
  *
- * Run AFTER seed-rental-data.ts:
- *   npx tsx scripts/train-isolation-forest.ts
+ * Production path is the Python sklearn pipeline:
+ *   npm run ml:train
+ *   npm run ml:server
  *
- * The model is then auto-loaded by IsolationForestDetector on service start.
+ * Prefer not to use this file for new work.
  */
 import * as fs from 'fs';
 import * as path from 'path';

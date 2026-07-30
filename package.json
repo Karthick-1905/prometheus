@@ -1,7 +1,8 @@
 {
-  "name": "prometheus-ingestion",
+  "name": "cat-smart-rental",
   "version": "0.1.0",
   "private": true,
+  "description": "CAT Smart Rental Tracking — MQTT ingestion, hybrid anomaly detection (rules + Python Isolation Forest), Next.js dashboard",
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n \"NEXT,INGEST\" -c \"cyan,yellow\" \"npm run dev:next\" \"npm run dev:ingest\"",
     "dev:next": "next dev",
@@ -9,18 +10,24 @@
     "build": "next build",
     "start": "next start",
     "ingest": "tsx src/index.ts",
-    "test:payloads": "tsx tests/test-payloads.ts",
-    "test:if": "tsx scripts/test_isolation_forest.ts",
+    "lint": "eslint",
+
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "seed:data": "tsx scripts/seed-rental-data.ts",
-    "train:forest": "tsx scripts/train-isolation-forest.ts",
-    "ml:generate": "python python-ml/generate_training_data.py --n 10000",
-    "ml:train": "python python-ml/train_and_eval.py --n 10000",
+    "db:seed": "tsx scripts/seed-rental-data.ts",
+
+    "ml:generate": "python python-ml/generate_training_data.py --n 15000",
+    "ml:train": "python python-ml/train_and_eval.py --n 15000",
     "ml:server": "python python-ml/main.py",
     "ml:test": "python python-ml/test_predict_api.py",
-    "ml:all": "python python-ml/train_and_eval.py --n 10000",
-    "lint": "eslint"
+
+    "sim:mqtt": "node pipeline/publish_telemetry.js",
+    "sim:python": "python scripts/simulator.py",
+    "data:telemetry": "node scripts/generate_data.js",
+
+    "test:payloads": "tsx tests/test-payloads.ts",
+    "test:if-legacy": "tsx scripts/test_isolation_forest.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

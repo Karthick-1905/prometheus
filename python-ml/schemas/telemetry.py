@@ -59,6 +59,8 @@ class TrainRequest(BaseModel):
 
 
 class TrainResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
     success:         bool
     message:         str
     n_samples:       int
@@ -71,6 +73,8 @@ class TrainResponse(BaseModel):
 # ── Model Status ──────────────────────────────────────────────────────────────
 
 class ModelStatusResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
     loaded:          bool
     model_path:      str
     trained_at:      Optional[str]

@@ -34,7 +34,7 @@ export class AnomalyService {
       const ruleFindings: DetectedAnomaly[] = RuleDetector.detect(telemetry, features);
 
       // ── Phase 2b: Isolation Forest via Python ML Server (optional) ────────
-      let ifFindings: DetectedAnomaly[] = [];
+      const ifFindings: DetectedAnomaly[] = [];
 
       const mlVector: MLFeatureVector = {
         fuelLevel:              telemetry.fuelLevel,
