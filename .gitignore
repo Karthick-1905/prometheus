@@ -1,59 +1,31 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Frontend
+Frontend/node_modules/
+Frontend/dist/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Backend
+Backend/venv/
+Backend/**/__pycache__/
+Backend/**/*.pyc
+Backend/.env
 
-# testing
-/coverage
+# Env
+.env
+.env.*
+!.env.example
+Backend/.env.example
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# IDE / OS
 .DS_Store
-*.pem
+.idea/
+.vscode/
+*.log
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# Legacy archive (old Next.js monorepo — safe to delete)
+_legacy/
 
-# env files (can opt-in for committing if needed)
-.env*
-pipeline/telemetry.csv
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# Isolation Forest (legacy TS path)
-/models
-
-# Python
+# Misc
+node_modules/
+.next/
 __pycache__/
-*.py[cod]
-*.egg-info/
+*.pyc
 .venv/
-python-ml/venv/
-python-ml/**/__pycache__/
-
-# Large generated datasets (regenerate with scripts)
-pipeline/telemetry.csv
-annomoly/training-data.csv
-
-# Keep trained sklearn artifacts optional to commit; ignore if huge local copies
-# annomoly/*.joblib

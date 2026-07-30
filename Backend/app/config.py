@@ -1,0 +1,46 @@
+"""Application settings (env / Neon DATABASE_URL)."""
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
+ARTIFACTS_DIR = BACKEND_ROOT / "artifacts"
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(BACKEND_ROOT / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    database_url: str = "postgresql://user:pass@localhost:5432/cat"
+    app_name: str = "CAT Smart Rental API"
+    app_version: str = "2.0.0"
+    cors_origins: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+    log_level: str = "info"
+    artifacts_dir: str = str(ARTIFACTS_DIR)
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def sqlalchemy_url(self) -> str:
+        """Normalize postgres URLs for SQLAlchemy + psycopg2."""
+        url = self.database_url
+        if url.startswith("postgresql+psycopg2://"):
+            return url
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[len("postgres://") :]
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return url
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

@@ -1,0 +1,1 @@
+"""CAT Smart Rental Backend."""
