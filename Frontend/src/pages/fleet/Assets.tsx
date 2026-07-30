@@ -1,145 +1,107 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { fleetApi } from '../../api/platform';
+import type { Alert, Machine, Telemetry } from '../../api/types';
 import PageHeader from '../../components/ui/PageHeader';
 import Panel from '../../components/ui/Panel';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { assets } from '../../mock/data';
+import { EmptyState, FeedbackBanner, PageSkeleton } from '../../components/ui/Feedback';
+import { getErrorMessage, useAsync } from '../../hooks/useAsync';
 
 export default function FleetAssets() {
-  const [q, setQ] = useState('');
-  const [status, setStatus] = useState('ALL');
-  const [selected, setSelected] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('');
+  const [selected, setSelected] = useState<Machine | null>(null);
+  const [history, setHistory] = useState<Telemetry[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
-  const rows = useMemo(() => {
-    return assets.filter((a) => {
-      const matchQ =
-        !q ||
-        a.id.toLowerCase().includes(q.toLowerCase()) ||
-        a.name.toLowerCase().includes(q.toLowerCase()) ||
-        a.type.toLowerCase().includes(q.toLowerCase());
-      const matchS = status === 'ALL' || a.status === status;
-      return matchQ && matchS;
-    });
-  }, [q, status]);
+  const resource = useAsync(async () => {
+    const [machines, map, unassigned, sites] = await Promise.all([
+      fleetApi.machines({ q: query, liveStatus: status || undefined, limit: 500 }),
+      fleetApi.map(),
+      fleetApi.unassigned(),
+      fleetApi.sites(),
+    ]);
+    return { machines: machines.data, map: map.data, unassigned: unassigned.data, sites: sites.data };
+  }, [query, status]);
 
-  const detail = assets.find((a) => a.id === selected);
+  useEffect(() => {
+    if (!selected) return;
+    setDetailLoading(true);
+    setDetailError(null);
+    Promise.all([
+      fleetApi.machine(selected.equipmentId),
+      fleetApi.telemetry(selected.equipmentId, 50),
+      fleetApi.alerts(selected.equipmentId, 20),
+    ])
+      .then(([machine, telemetry, machineAlerts]) => {
+        setSelected(machine.data);
+        setHistory(telemetry.data);
+        setAlerts(machineAlerts.data);
+      })
+      .catch((error) => setDetailError(getErrorMessage(error)))
+      .finally(() => setDetailLoading(false));
+  }, [selected?.equipmentId]);
 
   return (
     <div>
-      <PageHeader title="Assets" subtitle="Full equipment inventory" />
-
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex-1 flex items-center gap-2 bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2">
-          <span className="material-symbols-outlined text-on-surface-variant text-lg">search</span>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search ID, name, type…"
-            className="bg-transparent border-none outline-none w-full text-sm text-on-surface"
-          />
-        </div>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm font-semibold text-on-surface"
-        >
-          <option value="ALL">All statuses</option>
-          <option value="WORKING">Working</option>
-          <option value="AVAILABLE">Available</option>
-          <option value="IDLE">Idle</option>
-          <option value="MAINTENANCE">Maintenance</option>
-        </select>
+      <PageHeader title="Fleet Assets" subtitle="Search, scope, location, assignment, telemetry, and alert detail" />
+      <div className="toolbar">
+        <label className="field"><span>Search assets</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, type, site, or ID" /></label>
+        <label className="field"><span>Live status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option>{['WORKING', 'IDLE', 'OFF', 'STALE', 'ALERT', 'OVERDUE', 'IN_TRANSIT'].map((value) => <option key={value}>{value}</option>)}</select></label>
+        <div className="toolbar-summary"><strong>{resource.data?.machines.length ?? 0}</strong><span>visible assets</span></div>
+        <div className="toolbar-summary"><strong>{resource.data?.unassigned.length ?? 0}</strong><span>need assignment</span></div>
+        <div className="toolbar-summary"><strong>{resource.data?.map.length ?? 0}</strong><span>mapped positions</span></div>
       </div>
-
-      <Panel className="overflow-hidden">
-        <div className="overflow-x-auto -m-4">
-          <table className="w-full text-left text-xs min-w-[900px]">
-            <thead className="bg-surface-container text-[10px] uppercase tracking-wide text-on-surface-variant">
-              <tr>
-                {[
-                  'Equipment ID',
-                  'Name',
-                  'Type',
-                  'Dealer',
-                  'Site',
-                  'Operator',
-                  'Status',
-                  'Availability',
-                  'Fuel',
-                  'Engine Hours',
-                  'Last Updated',
-                  'Actions',
-                ].map((h) => (
-                  <th key={h} className="px-3 py-3 font-bold whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((a) => (
-                <tr key={a.id} className="border-t border-outline-variant/40 hover:bg-surface-container/50">
-                  <td className="px-3 py-3 font-bold font-mono">{a.id}</td>
-                  <td className="px-3 py-3">{a.name}</td>
-                  <td className="px-3 py-3">{a.type}</td>
-                  <td className="px-3 py-3">{a.dealer}</td>
-                  <td className="px-3 py-3">{a.site}</td>
-                  <td className="px-3 py-3">{a.operator}</td>
-                  <td className="px-3 py-3">
-                    <StatusBadge status={a.status} />
-                  </td>
-                  <td className="px-3 py-3">{a.availability}</td>
-                  <td className="px-3 py-3">{a.fuel}%</td>
-                  <td className="px-3 py-3">{a.engineHours.toLocaleString()}</td>
-                  <td className="px-3 py-3 text-on-surface-variant">{a.lastUpdated}</td>
-                  <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelected(a.id)}
-                      className="text-[10px] font-bold uppercase px-2 py-1 rounded border border-outline-variant hover:bg-primary-container cursor-pointer"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
-
-      {detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setSelected(null)}>
-          <div
-            className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 max-w-md w-full shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-black text-lg">{detail.id}</h3>
-                <p className="text-sm text-on-surface-variant">{detail.name}</p>
-              </div>
-              <button type="button" onClick={() => setSelected(null)} className="material-symbols-outlined cursor-pointer">
-                close
-              </button>
+      {resource.error && <FeedbackBanner tone="error">{resource.error}</FeedbackBanner>}
+      {resource.loading ? <PageSkeleton rows={8} /> : (
+        <Panel>
+          {!resource.data?.machines.length ? (
+            <EmptyState title="No assets match" message="Clear filters or verify active rental contracts for this company." />
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead><tr><th>Asset</th><th>Site</th><th>Rental</th><th>Live status</th><th>Fuel</th><th>Alerts</th><th /></tr></thead>
+                <tbody>{resource.data.machines.map((machine) => (
+                  <tr key={machine.equipmentId}>
+                    <td><strong>{machine.equipmentName ?? `Equipment ${machine.equipmentId}`}</strong><small>#{machine.equipmentId} · {machine.equipmentType ?? 'Unknown type'}</small></td>
+                    <td>{machine.siteName ?? 'Unassigned'}</td>
+                    <td><StatusBadge status={machine.rentalStatus ?? 'UNKNOWN'} /></td>
+                    <td><StatusBadge status={machine.liveStatus ?? 'UNKNOWN'} /></td>
+                    <td>{machine.telemetry?.fuelLevel == null ? '—' : `${machine.telemetry.fuelLevel.toFixed(0)}%`}</td>
+                    <td>{machine.openAlertCount ?? 0}</td>
+                    <td><button className="btn-secondary" type="button" onClick={() => setSelected(machine)}>Inspect</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
             </div>
-            <dl className="grid grid-cols-2 gap-3 text-xs">
-              {[
-                ['Type', detail.type],
-                ['Dealer', detail.dealer],
-                ['Site', detail.site],
-                ['Operator', detail.operator],
-                ['Status', detail.status],
-                ['Fuel', `${detail.fuel}%`],
-                ['Engine hours', String(detail.engineHours)],
-                ['Updated', detail.lastUpdated],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <dt className="text-on-surface-variant uppercase text-[10px] font-bold">{k}</dt>
-                  <dd className="font-semibold text-on-surface mt-0.5">{v}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          )}
+        </Panel>
+      )}
+
+      {selected && (
+        <div className="drawer-backdrop" onMouseDown={() => setSelected(null)}>
+          <aside className="detail-drawer" onMouseDown={(event) => event.stopPropagation()} aria-label="Asset detail">
+            <header><div><h2>{selected.equipmentName ?? `Equipment ${selected.equipmentId}`}</h2><p>{selected.equipmentType} · #{selected.equipmentId}</p></div><button type="button" onClick={() => setSelected(null)} aria-label="Close detail"><span className="material-symbols-outlined">close</span></button></header>
+            {detailError && <FeedbackBanner tone="error">{detailError}</FeedbackBanner>}
+            {detailLoading ? <PageSkeleton rows={6} /> : (
+              <>
+                <dl className="detail-grid">
+                  <div><dt>Live status</dt><dd><StatusBadge status={selected.liveStatus ?? 'UNKNOWN'} /></dd></div>
+                  <div><dt>Site</dt><dd>{selected.siteName ?? 'Unassigned'}</dd></div>
+                  <div><dt>Contract</dt><dd>#{selected.contractId ?? '—'}</dd></div>
+                  <div><dt>Expected return</dt><dd>{selected.expectedReturn ? new Date(selected.expectedReturn).toLocaleDateString() : '—'}</dd></div>
+                  <div><dt>Last seen</dt><dd>{selected.lastSeenAt ? new Date(selected.lastSeenAt).toLocaleString() : 'No telemetry'}</dd></div>
+                  <div><dt>Coordinates</dt><dd>{selected.telemetry?.latitude == null ? 'Unavailable' : `${selected.telemetry.latitude.toFixed(4)}, ${selected.telemetry.longitude?.toFixed(4)}`}</dd></div>
+                </dl>
+                <h3>Telemetry history</h3>
+                {history.length ? <div className="data-list">{history.slice(0, 8).map((item, index) => <div className="data-list-row compact" key={`${item.timestamp}-${index}`}><div><strong>{item.engineStatus ?? 'Unknown engine state'}</strong><span>{item.timestamp ? new Date(item.timestamp).toLocaleString() : 'No timestamp'}</span></div><span>{item.fuelLevel ?? '—'}% fuel · {item.loadPercentage ?? '—'}% load</span></div>)}</div> : <EmptyState title="No telemetry history" message="This asset has not sent telemetry samples." />}
+                <h3>Asset alerts</h3>
+                {alerts.length ? <div className="data-list">{alerts.map((alert) => <div className="data-list-row compact" key={alert.alertId}><div><strong>{alert.description ?? alert.anomalyType}</strong><span>{alert.detectedAt ? new Date(alert.detectedAt).toLocaleString() : 'Unknown time'}</span></div><StatusBadge status={alert.isResolved ? 'RESOLVED' : alert.severity ?? 'OPEN'} /></div>)}</div> : <EmptyState title="No asset alerts" message="No anomaly alerts are associated with this equipment." />}
+              </>
+            )}
+          </aside>
         </div>
       )}
     </div>

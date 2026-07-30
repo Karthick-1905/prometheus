@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useRole } from '../../context/RoleContext';
 import { COMMON_NAV, ROLE_NAV } from '../../types/roles';
+import { readApiSession } from '../../api/client';
 
 export default function AppHeader({ title, subtitle }: { title?: string; subtitle?: string }) {
-  const { role, roleLabel } = useRole();
+  const { role, roleLabel, user } = useRole();
   const [open, setOpen] = useState(false);
   const items = role ? ROLE_NAV[role] : [];
+  const actor = user?.actorId ?? readApiSession()?.actorId ?? 'User';
 
   return (
     <header className="sticky top-0 z-30 border-b border-outline-variant bg-surface/95 backdrop-blur">
@@ -41,8 +43,8 @@ export default function AppHeader({ title, subtitle }: { title?: string; subtitl
 
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="hidden sm:flex items-center gap-2 bg-surface-container-low border border-outline-variant px-3 py-1 rounded text-xs font-semibold text-on-surface-variant">
-            <span className="w-2 h-2 rounded-full bg-[#2E7D32] animate-pulse" />
-            Mock mode
+            <span className="w-2 h-2 rounded-full bg-[#2E7D32]" />
+            API connected
           </div>
           <Link
             to="/notifications"
@@ -56,7 +58,7 @@ export default function AppHeader({ title, subtitle }: { title?: string; subtitl
             className="w-9 h-9 rounded-lg border border-outline-variant bg-primary-container flex items-center justify-center font-black text-xs text-on-primary-container"
             title="Profile"
           >
-            DU
+            {actor.slice(0, 2).toUpperCase()}
           </Link>
         </div>
       </div>

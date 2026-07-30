@@ -1,12 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import { useRole } from '../../context/RoleContext';
 import { COMMON_NAV, ROLE_LABELS, ROLE_NAV } from '../../types/roles';
+import { readApiSession } from '../../api/client';
 
 export default function AppSidebar() {
-  const { role, roleLabel, clearRole } = useRole();
+  const { role, roleLabel, user, clearRole } = useRole();
   if (!role) return null;
 
   const items = ROLE_NAV[role];
+  const actor = user?.actorId ?? readApiSession()?.actorId ?? 'User';
 
   return (
     <aside className="h-screen w-64 shrink-0 fixed left-0 top-0 bg-surface-container-low border-r border-outline-variant flex flex-col py-6 px-4 gap-2 z-40">
@@ -95,7 +97,7 @@ export default function AppSidebar() {
         </div>
         <div className="overflow-hidden">
           <p className="font-title-md text-xs font-bold text-on-surface leading-tight truncate">
-            Demo User
+            {actor}
           </p>
           <p className="font-label-md text-[10px] uppercase text-on-surface-variant">
             {ROLE_LABELS[role]}

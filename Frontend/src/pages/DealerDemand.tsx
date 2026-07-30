@@ -84,7 +84,7 @@ export default function DealerDemandPage() {
           <div><h1>Regional positioning</h1><p>Protect customer commitments while balancing fleet supply</p></div>
         </div>
         <nav className="demand-nav" aria-label="Primary navigation">
-          <Link to="/">Fleet</Link><Link to="/ml-lab">ML lab</Link><Link to="/demand">Customer forecast</Link>
+          <Link to="/dealer/dashboard">Dealer</Link><Link to="/dealer/inventory">Inventory</Link>
           <Link className="is-current" to="/dealer/demand">Dealer view</Link>
         </nav>
       </header>

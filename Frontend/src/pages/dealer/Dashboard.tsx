@@ -1,31 +1,41 @@
+import { dealerApi } from '../../api/platform';
 import PageHeader from '../../components/ui/PageHeader';
 import Panel from '../../components/ui/Panel';
 import StatCard from '../../components/ui/StatCard';
-import StatusBadge from '../../components/ui/StatusBadge';
-import { dealerStats, rentals } from '../../mock/data';
+import { FeedbackBanner, PageSkeleton } from '../../components/ui/Feedback';
+import { useAsync } from '../../hooks/useAsync';
+
+const n = (value: unknown) => Number(value ?? 0);
 
 export default function DealerDashboard() {
+  const resource = useAsync(async () => {
+    const [profile, summary, equipment, contracts] = await Promise.all([
+      dealerApi.me(),
+      dealerApi.summary(),
+      dealerApi.equipment({ limit: 8 }),
+      dealerApi.contracts(undefined, 8),
+    ]);
+    return { profile: profile.data, summary: summary.data, equipment: equipment.data, contracts: contracts.data };
+  }, []);
+  const totals = (resource.data?.summary.totals ?? {}) as Record<string, unknown>;
   return (
     <div>
-      <PageHeader title="Dealer Dashboard" subtitle="Rental portfolio snapshot" />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <StatCard label="Active Rentals" value={dealerStats.activeRentals} icon="assignment" accent="success" />
-        <StatCard label="Returned Equipment" value={dealerStats.returned} icon="keyboard_return" />
-        <StatCard label="Available Equipment" value={dealerStats.available} icon="inventory" />
-      </div>
-      <Panel title="Recent rentals">
-        <div className="space-y-2">
-          {rentals.slice(0, 4).map((r) => (
-            <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-outline-variant/30 last:border-0">
-              <div>
-                <p className="text-sm font-bold">{r.id} · {r.customer}</p>
-                <p className="text-xs text-on-surface-variant font-mono">{r.equipment}</p>
-              </div>
-              <StatusBadge status={r.status} />
-            </div>
-          ))}
-        </div>
-      </Panel>
+      <PageHeader title="Dealer Dashboard" subtitle={resource.data ? `${String(resource.data.profile.dealerName)} · live inventory and contracts` : 'Live inventory and contracts'} actions={<button className="btn-secondary" type="button" onClick={() => void resource.reload()}>Refresh</button>} />
+      {resource.error && <FeedbackBanner tone="error">{resource.error}</FeedbackBanner>}
+      {resource.loading ? <PageSkeleton rows={8} /> : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <StatCard label="Equipment" value={n(totals.equipment)} icon="construction" />
+            <StatCard label="Available" value={n(totals.available)} icon="check_circle" accent="success" />
+            <StatCard label="Active contracts" value={n(totals.activeContracts)} icon="assignment" />
+            <StatCard label="Overdue" value={n(totals.overdueContracts)} icon="event_busy" accent="warning" />
+          </div>
+          <div className="grid lg:grid-cols-2 gap-4">
+            <Panel title="Recent contracts"><div className="data-list">{resource.data?.contracts.map((contract) => <div className="data-list-row compact" key={contract.contractId}><div><strong>{contract.companyName ?? `Company ${contract.companyId}`}</strong><span>{contract.equipmentName ?? `Equipment ${contract.equipmentId}`} · Contract #{contract.contractId}</span></div><strong>{contract.rentalStatus}</strong></div>)}</div></Panel>
+            <Panel title="Inventory mix"><div className="data-list">{Object.entries((resource.data?.summary.equipmentByStatus ?? {}) as Record<string, unknown>).map(([status, value]) => <div className="data-list-row compact" key={status}><strong>{status}</strong><span>{n(value)} units</span></div>)}</div></Panel>
+          </div>
+        </>
+      )}
     </div>
   );
 }

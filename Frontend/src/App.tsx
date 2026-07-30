@@ -22,6 +22,9 @@ import OperatorDashboard from './pages/operator/Dashboard';
 import OperatorScanQR from './pages/operator/ScanQR';
 import OperatorCurrentAssignment from './pages/operator/CurrentAssignment';
 import OperatorActivityHistory from './pages/operator/ActivityHistory';
+import DemandLab from './pages/DemandLab';
+import DealerDemandPage from './pages/DealerDemand';
+import SystemOperations from './pages/admin/SystemOperations';
 import { GuestOnly, RequireRole } from './routes/ProtectedRoute';
 import { ROLE_HOME } from './types/roles';
 
@@ -61,12 +64,14 @@ export default function App() {
         <Route path="/fleet/utilization" element={<FleetUtilization />} />
         <Route path="/fleet/telemetry" element={<FleetLiveTelemetry />} />
         <Route path="/fleet/anomalies" element={<FleetAnomalyDetection />} />
+        <Route path="/fleet/demand" element={<DemandLab />} />
 
         {/* Dealer */}
         <Route path="/dealer/dashboard" element={<DealerDashboard />} />
         <Route path="/dealer/rentals" element={<DealerRentalOps />} />
         <Route path="/dealer/inventory" element={<DealerInventory />} />
         <Route path="/dealer/customers" element={<DealerCustomers />} />
+        <Route path="/dealer/demand" element={<DealerDemandPage />} />
 
         {/* Site Manager */}
         <Route path="/site/dashboard" element={<SiteDashboard />} />
@@ -79,6 +84,11 @@ export default function App() {
         <Route path="/operator/scan" element={<OperatorScanQR />} />
         <Route path="/operator/assignment" element={<OperatorCurrentAssignment />} />
         <Route path="/operator/history" element={<OperatorActivityHistory />} />
+
+        {/* System Administrator */}
+        <Route path="/admin/system" element={<SystemOperations />} />
+        <Route path="/admin/demand" element={<DemandLab />} />
+
       </Route>
 
       <Route path="/" element={<RootRedirect />} />

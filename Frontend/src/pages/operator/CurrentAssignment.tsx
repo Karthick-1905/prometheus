@@ -1,28 +1,17 @@
+import { siteApi } from '../../api/platform';
 import PageHeader from '../../components/ui/PageHeader';
 import Panel from '../../components/ui/Panel';
-import { currentAssignment } from '../../mock/data';
+import StatusBadge from '../../components/ui/StatusBadge';
+import { EmptyState, FeedbackBanner, PageSkeleton } from '../../components/ui/Feedback';
+import { useAsync } from '../../hooks/useAsync';
 
 export default function OperatorCurrentAssignment() {
-  const a = currentAssignment;
+  const resource = useAsync(() => siteApi.activeCheckouts(), []);
   return (
-    <div className="max-w-md mx-auto md:max-w-lg">
-      <PageHeader title="Current Assignment" subtitle="Active job ticket" />
-      <Panel>
-        <dl className="space-y-4">
-          {[
-            ['Equipment', a.equipment],
-            ['Site', a.site],
-            ['Runtime', `${a.runtime} h`],
-            ['Fuel', `${a.fuel}%`],
-            ['Assignment Time', a.assignmentTime],
-          ].map(([k, v]) => (
-            <div key={k} className="flex justify-between items-center border-b border-outline-variant/40 pb-3 last:border-0">
-              <dt className="text-xs uppercase font-bold text-on-surface-variant">{k}</dt>
-              <dd className="font-black text-on-surface text-sm">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </Panel>
+    <div className="max-w-3xl mx-auto">
+      <PageHeader title="Current Assignments" subtitle="Active equipment checkouts in your scoped sites" actions={<button className="btn-secondary" type="button" onClick={() => void resource.reload()}>Refresh</button>} />
+      {resource.error && <FeedbackBanner tone="error">{resource.error}</FeedbackBanner>}
+      <Panel>{resource.loading ? <PageSkeleton rows={5} /> : !resource.data?.data.length ? <EmptyState title="No current assignment" message="Scan an equipment identifier and check it out to a site." /> : <div className="data-list">{resource.data.data.map((item) => <article className="assignment-ticket" key={item.assignmentId}><header><div><h3>{item.equipmentName ?? `Equipment ${item.equipmentId}`}</h3><p>{item.equipmentType} · Contract #{item.contractId}</p></div><StatusBadge status={item.status ?? 'UNKNOWN'} /></header><dl><div><dt>Site</dt><dd>{item.siteName}</dd></div><div><dt>Checked out</dt><dd>{item.checkoutTime ? new Date(item.checkoutTime).toLocaleString() : '—'}</dd></div><div><dt>Assignment</dt><dd>#{item.assignmentId}</dd></div></dl></article>)}</div>}</Panel>
     </div>
   );
 }
