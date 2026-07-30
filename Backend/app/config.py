@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6380/0"
     redis_telemetry_channel: str = "telemetry:events"
 
+    # JWT auth (dashboard). Demo login still works without a real user store.
+    jwt_secret: str = "dev-cat-smart-rental-secret-change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 12
+    jwt_demo_auth_enabled: bool = True
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
