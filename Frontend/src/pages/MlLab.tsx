@@ -1,5 +1,5 @@
+import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from '../components/AppLink';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ interface HistoryItem {
   at: string;
 }
 
-// ── Presets (aligned with annomoly/training-data.csv distribution) ───────────
+// ── Presets ──────────────────────────────────────────────────────────────────
 
 const PRESETS: Record<string, { label: string; desc: string; form: FeatureForm }> = {
   normal: {
@@ -127,22 +127,7 @@ const PRESETS: Record<string, { label: string; desc: string; form: FeatureForm }
   },
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function scoreColor(score: number, isAnomaly: boolean): string {
-  if (!isAnomaly) return 'var(--severity-resolved)';
-  if (score >= 0.75) return 'var(--severity-critical)';
-  if (score >= 0.6) return 'var(--severity-warning)';
-  return 'var(--severity-info)';
-}
-
-function confidenceClass(c: string): string {
-  if (c === 'HIGH') return 'CRITICAL';
-  if (c === 'MEDIUM') return 'WARNING';
-  return 'INFO';
-}
-
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────────────────────────
 
 export default function MlLabPage() {
   const [form, setForm] = useState<FeatureForm>(PRESETS.normal.form);
@@ -156,7 +141,6 @@ export default function MlLabPage() {
 
   const meta = health?.model_meta as Record<string, unknown> | null | undefined;
 
-  // Keep idleRatio consistent when engine/idle change
   useEffect(() => {
     if (!autoIdleRatio) return;
     const total = form.engineHoursPerDay + form.idleHoursPerDay;
@@ -257,28 +241,48 @@ export default function MlLabPage() {
   );
 
   return (
-    <div className="dashboard animate-in">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-brand">
-          <div className="header-logo">ML</div>
+    <div style={{ backgroundColor: '#fff8f0', color: '#1f1b10' }} className="min-h-screen flex overflow-hidden font-sans">
+
+      {/* ── Side Navigation Shell ── */}
+      <aside style={{ backgroundColor: '#fdf3e1', borderColor: '#d1c5ab' }} className="h-screen w-64 fixed left-0 top-0 border-r flex flex-col py-6 px-4 gap-2 z-40">
+        <div className="mb-6 px-2">
+          <h1 style={{ color: '#1f1b10' }} className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <span className="material-symbols-outlined text-3xl" style={{ color: '#745b00' }}>construction</span>
+            Nexus
+          </h1>
+          <p style={{ color: '#4e4632' }} className="text-[11px] font-bold uppercase tracking-wider opacity-80">Industrial Fleet Hub</p>
+        </div>
+
+        <nav className="flex-1 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
+          <Link
+            to="/"
+            style={{ color: '#4e4632' }}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase font-semibold hover:bg-[#f7eddb] transition-all"
+          >
+            <span className="material-symbols-outlined">warning</span>
+            AI Anomalies
+          </Link>
+          <Link
+            to="/ml-lab"
+            style={{ backgroundColor: '#ffcd11', color: '#6f5800', borderColor: '#745b00' }}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg border font-bold text-xs uppercase transition-all shadow-sm"
+          >
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>science</span>
+            ML Isolation Lab
+          </Link>
+        </nav>
+
+        {/* User Profile */}
+        <div style={{ borderColor: '#d1c5ab' }} className="mt-auto p-3 flex items-center gap-3 border-t pt-4">
+          <div style={{ backgroundColor: '#ffcd11', color: '#6f5800' }} className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm">
+            MC
+          </div>
           <div>
-            <div className="header-title">Isolation Forest Lab</div>
-            <div className="header-subtitle">
-              Score rental usage patterns against the trained 6-feature model ·{' '}
-              <Link to="/" style={{ color: 'var(--cat-yellow)' }}>
-                ← Fleet dashboard
-              </Link>
-            </div>
+            <p style={{ color: '#1f1b10' }} className="text-sm font-bold leading-tight">Marcus Chen</p>
+            <p style={{ color: '#4e4632' }} className="text-[10px] font-semibold uppercase">Fleet Director</p>
           </div>
         </div>
         <div className="header-right">
-          <Link to="/demand" className="nav-link-btn">
-            Demand plan
-          </Link>
-          <Link to="/dealer/demand" className="nav-link-btn">
-            Dealer view
-          </Link>
           <div className={`live-badge ${health?.reachable && health?.model_loaded ? '' : 'offline'}`}>
             <div className="live-dot" />
             {health?.reachable
@@ -287,381 +291,265 @@ export default function MlLabPage() {
                 : 'Server up · no model'
               : 'ML offline'}
           </div>
-          <button className="refresh-btn" onClick={refreshHealth} type="button">
-            Refresh status
-          </button>
-        </div>
-      </header>
 
-      {/* Model status cards */}
-      <div className="stats-bar">
-        <div className={`stat-card ${health?.reachable ? 'success' : 'critical'}`}>
-          <div className={`stat-icon ${health?.reachable ? 'success' : 'critical'}`}>
-            {health?.reachable ? '🟢' : '🔴'}
-          </div>
-          <div className="stat-content">
-            <div className="stat-value" style={{ fontSize: '1.1rem' }}>
-              {health?.reachable ? 'Online' : 'Offline'}
-            </div>
-            <div className="stat-label">ML Server :8000</div>
-          </div>
-        </div>
-        <div className={`stat-card ${health?.model_loaded ? 'success' : 'warning'}`}>
-          <div className={`stat-icon ${health?.model_loaded ? 'success' : 'warning'}`}>🌲</div>
-          <div className="stat-content">
-            <div className="stat-value" style={{ fontSize: '1.1rem' }}>
-              {health?.model_loaded ? 'Loaded' : 'Missing'}
-            </div>
-            <div className="stat-label">Isolation Forest</div>
-          </div>
-        </div>
-        <div className="stat-card info">
-          <div className="stat-icon info">📊</div>
-          <div className="stat-content">
-            <div className="stat-value">
-              {typeof meta?.n_samples === 'number' ? meta.n_samples : '—'}
-            </div>
-            <div className="stat-label">Training samples</div>
-          </div>
-        </div>
-        <div className="stat-card warning">
-          <div className="stat-icon warning">🌳</div>
-          <div className="stat-content">
-            <div className="stat-value">
-              {typeof meta?.n_estimators === 'number' ? meta.n_estimators : '—'}
-            </div>
-            <div className="stat-label">Trees · cont. {String(meta?.contamination ?? '—')}</div>
-          </div>
-        </div>
-      </div>
-
-      {!health?.reachable && (
-        <div className="ml-banner warn">
-          <strong>ML server not reachable.</strong> Run{' '}
-          <code>npm run ml:server</code> in another terminal, then refresh.
-          {health?.error ? <span> ({health.error})</span> : null}
-        </div>
-      )}
-
-      {health?.reachable && !health.model_loaded && (
-        <div className="ml-banner warn">
-          <strong>Server is up but no model is loaded.</strong> Run{' '}
-          <code>npm run ml:train</code> then restart the server.
-        </div>
-      )}
-
-      <div className="ml-lab-grid">
-        {/* Left: form */}
-        <section className="simulator-card">
-          <div className="simulator-title">🧪 Feature vector (6-dim)</div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
-            Model features from rental usage (not live MQTT sensors). Training data is
-            mostly ~21 engine hrs/day, always operator+site, rentalDays≈25.
-          </p>
-
-          <div className="scenario-buttons">
-            {Object.entries(PRESETS).map(([key, p]) => (
-              <button
-                key={key}
-                type="button"
-                className={`scenario-btn ${preset === key ? 'active' : ''}`}
-                onClick={() => loadPreset(key)}
-                title={p.desc}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {preset !== 'custom' && PRESETS[preset] && (
-            <p className="ml-preset-desc">{PRESETS[preset].desc}</p>
-          )}
-
-          <form onSubmit={handleScore} className="simulator-form-grid">
-            <div className="form-group">
-              <label>Equipment ID</label>
-              <input
-                type="text"
-                value={form.equipmentId}
-                onChange={(e) => setField('equipmentId', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>Equipment Type</label>
-              <select
-                value={form.equipmentType}
-                onChange={(e) => setField('equipmentType', e.target.value)}
-              >
-                <option>Excavator</option>
-                <option>Bulldozer</option>
-                <option>Dump Truck</option>
-                <option>Wheel Loader</option>
-                <option>Crane</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Has Operator</label>
-              <select
-                value={form.hasOperator}
-                onChange={(e) => setField('hasOperator', Number(e.target.value))}
-              >
-                <option value={1}>Yes (1)</option>
-                <option value={0}>No (0)</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Has Site</label>
-              <select
-                value={form.hasSite}
-                onChange={(e) => setField('hasSite', Number(e.target.value))}
-              >
-                <option value={1}>Yes (1)</option>
-                <option value={0}>No (0)</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Engine hrs / day
-                <span className="val">{form.engineHoursPerDay.toFixed(2)}</span>
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={30}
-                step={0.1}
-                value={form.engineHoursPerDay}
-                onChange={(e) => setField('engineHoursPerDay', Number(e.target.value))}
-              />
-            </div>
-            <div className="form-group">
-              <label>
-                Idle hrs / day
-                <span className="val">{form.idleHoursPerDay.toFixed(2)}</span>
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={20}
-                step={0.1}
-                value={form.idleHoursPerDay}
-                onChange={(e) => setField('idleHoursPerDay', Number(e.target.value))}
-              />
-            </div>
-            <div className="form-group">
-              <label>
-                Rental days
-                <span className="val">{form.rentalDays}</span>
-              </label>
-              <input
-                type="range"
-                min={1}
-                max={60}
-                step={1}
-                value={form.rentalDays}
-                onChange={(e) => setField('rentalDays', Number(e.target.value))}
-              />
-            </div>
-            <div className="form-group">
-              <label>
-                Idle ratio
-                <span className="val">{form.idleRatio.toFixed(4)}</span>
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.001}
-                value={form.idleRatio}
-                disabled={autoIdleRatio}
-                onChange={(e) => setField('idleRatio', Number(e.target.value))}
-              />
-              <label className="ml-check">
-                <input
-                  type="checkbox"
-                  checked={autoIdleRatio}
-                  onChange={(e) => setAutoIdleRatio(e.target.checked)}
-                />
-                Auto = idle / (engine + idle)
-              </label>
-            </div>
-          </form>
-
-          <div className="simulator-actions">
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              POST /api/ml/predict → Python Isolation Forest
-            </div>
-            <button
-              type="button"
-              className="simulator-submit-btn"
-              disabled={scoring || !health?.model_loaded}
-              onClick={() => handleScore()}
+          <div className="flex items-center gap-4">
+            <div
+              style={{
+                backgroundColor: health?.reachable && health?.model_loaded ? '#fdf3e1' : '#ffdad6',
+                color: health?.reachable && health?.model_loaded ? '#006874' : '#ba1a1a',
+                borderColor: '#d1c5ab',
+              }}
+              className="flex items-center gap-2 px-3 py-1 rounded border text-xs font-bold"
             >
-              {scoring ? 'Scoring…' : '🎯 Score vector'}
+              <span className={`w-2 h-2 rounded-full ${health?.reachable && health?.model_loaded ? 'bg-emerald-600' : 'bg-red-600'}`} />
+              {health?.reachable ? (health.model_loaded ? 'Isolation Forest Ready' : 'Model Missing') : 'ML Server Offline'}
+            </div>
+
+            <button
+              onClick={refreshHealth}
+              style={{ backgroundColor: '#f7eddb', borderColor: '#d1c5ab', color: '#4e4632' }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border hover:bg-[#f1e7d5] transition-colors text-xs font-bold uppercase cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">sync</span>
+              Refresh Status
             </button>
           </div>
-        </section>
+        </header>
 
-        {/* Right: result + meta */}
-        <div className="ml-side-col">
-          <section className="simulator-card">
-            <div className="simulator-title">📈 Score result</div>
+        {/* Content Workspace */}
+        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 custom-scrollbar">
 
-            {error && (
-              <div className="ml-banner warn" style={{ margin: 0 }}>
-                {error}
+          {/* Model Status Metrics Bar */}
+          <div className="grid grid-cols-4 gap-6">
+            <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="border rounded-xl p-4 shadow-xs flex items-center gap-4">
+              <div style={{ backgroundColor: health?.reachable ? '#ffcd11' : '#ffdad6' }} className="w-12 h-12 rounded-lg flex items-center justify-center font-bold">
+                <span className="material-symbols-outlined text-2xl" style={{ color: health?.reachable ? '#6f5800' : '#ba1a1a' }}>dns</span>
               </div>
-            )}
-
-            {!result && !error && (
-              <div className="empty-state" style={{ padding: 'var(--space-8)' }}>
-                <div className="empty-state-icon">🌲</div>
-                <div className="empty-state-title">No score yet</div>
-                <div className="empty-state-desc">
-                  Pick a preset or tweak sliders, then hit Score vector.
-                </div>
-              </div>
-            )}
-
-            {result && (
-              <>
-                <div
-                  className="ml-score-ring"
-                  style={{
-                    ['--score-color' as string]: scoreColor(
-                      result.anomalyScore,
-                      result.isAnomaly
-                    ),
-                  }}
-                >
-                  <div className="ml-score-value">{scorePct}</div>
-                  <div className="ml-score-unit">anomaly %</div>
-                </div>
-
-                <div className="result-details">
-                  <div className="result-field">
-                    <span className="result-field-label">Classification</span>
-                    <span
-                      className={`result-badge ${result.isAnomaly ? 'anomaly' : 'normal'}`}
-                    >
-                      {result.isAnomaly ? 'ANOMALY' : 'NORMAL'}
-                    </span>
-                  </div>
-                  <div className="result-field">
-                    <span className="result-field-label">Confidence</span>
-                    <span className={`severity-badge ${confidenceClass(result.confidence)}`}>
-                      <span className="badge-dot" />
-                      {result.confidence}
-                    </span>
-                  </div>
-                  <div className="result-field">
-                    <span className="result-field-label">Equipment</span>
-                    <span className="result-field-value">
-                      {result.equipmentId ?? form.equipmentId}
-                    </span>
-                  </div>
-                  <div className="result-field">
-                    <span className="result-field-label">Score [0–1]</span>
-                    <span className="result-field-value" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {result.anomalyScore.toFixed(4)}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="ml-message">{result.message}</p>
-              </>
-            )}
-          </section>
-
-          <section className="simulator-card">
-            <div className="simulator-title">ℹ️ Model metadata</div>
-            <div className="result-details">
-              <div className="result-field">
-                <span className="result-field-label">Trained at</span>
-                <span className="result-field-value">
-                  {typeof meta?.trained_at === 'string'
-                    ? new Date(meta.trained_at).toLocaleString()
-                    : '—'}
-                </span>
-              </div>
-              <div className="result-field">
-                <span className="result-field-label">Decision threshold</span>
-                <span className="result-field-value" style={{ fontFamily: 'var(--font-mono)' }}>
-                  {typeof meta?.decision_threshold === 'number'
-                    ? meta.decision_threshold.toFixed(6)
-                    : '—'}
-                </span>
-              </div>
-              <div className="result-field">
-                <span className="result-field-label">Feature dim</span>
-                <span className="result-field-value">
-                  {String(meta?.feature_dim ?? 6)} ·{' '}
-                  {Array.isArray(meta?.feature_cols)
-                    ? (meta.feature_cols as string[]).join(', ')
-                    : 'engineHoursPerDay, …'}
-                </span>
-              </div>
-              <div className="result-field">
-                <span className="result-field-label">Hold-out accuracy</span>
-                <span className="result-field-value">
-                  {meta?.metrics &&
-                  typeof (meta.metrics as { accuracy?: number }).accuracy === 'number'
-                    ? `${(((meta.metrics as { accuracy: number }).accuracy) * 100).toFixed(1)}%`
-                    : '—'}
-                </span>
+              <div>
+                <p style={{ color: '#4e4632' }} className="text-[10px] font-bold uppercase">ML Server :8000</p>
+                <p className="text-base font-extrabold">{health?.reachable ? 'Online' : 'Offline'}</p>
               </div>
             </div>
-          </section>
-        </div>
-      </div>
 
-      {/* History */}
-      {history.length > 0 && (
-        <section className="simulator-card">
-          <div className="simulator-title">🕒 Recent scores</div>
-          <div className="alerts-table-wrapper">
-            <table className="alerts-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Preset</th>
-                  <th>Equipment</th>
-                  <th>Result</th>
-                  <th>Score</th>
-                  <th>Confidence</th>
-                  <th>Message</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((h) => (
-                  <tr key={h.id}>
-                    <td className="timestamp">{h.at}</td>
-                    <td>{h.label}</td>
-                    <td className="equipment-id">{h.result.equipmentId ?? '—'}</td>
-                    <td>
-                      <span
-                        className={`result-badge ${h.result.isAnomaly ? 'anomaly' : 'normal'}`}
-                      >
-                        {h.result.isAnomaly ? 'ANOMALY' : 'NORMAL'}
-                      </span>
-                    </td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>
-                      {h.result.anomalyScore.toFixed(3)}
-                    </td>
-                    <td>
-                      <span className={`severity-badge ${confidenceClass(h.result.confidence)}`}>
-                        <span className="badge-dot" />
-                        {h.result.confidence}
-                      </span>
-                    </td>
-                    <td className="alert-description">{h.result.message}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="border rounded-xl p-4 shadow-xs flex items-center gap-4">
+              <div style={{ backgroundColor: '#f7eddb' }} className="w-12 h-12 rounded-lg flex items-center justify-center font-bold">
+                <span className="material-symbols-outlined text-2xl" style={{ color: '#745b00' }}>park</span>
+              </div>
+              <div>
+                <p style={{ color: '#4e4632' }} className="text-[10px] font-bold uppercase">Isolation Forest</p>
+                <p className="text-base font-extrabold">{health?.model_loaded ? 'Model Loaded' : 'Not Loaded'}</p>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="border rounded-xl p-4 shadow-xs flex items-center gap-4">
+              <div style={{ backgroundColor: '#f7eddb' }} className="w-12 h-12 rounded-lg flex items-center justify-center font-bold">
+                <span className="material-symbols-outlined text-2xl" style={{ color: '#006874' }}>analytics</span>
+              </div>
+              <div>
+                <p style={{ color: '#4e4632' }} className="text-[10px] font-bold uppercase">Training Samples</p>
+                <p className="text-base font-extrabold">{typeof meta?.n_samples === 'number' ? meta.n_samples : '—'}</p>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="border rounded-xl p-4 shadow-xs flex items-center gap-4">
+              <div style={{ backgroundColor: '#f7eddb' }} className="w-12 h-12 rounded-lg flex items-center justify-center font-bold">
+                <span className="material-symbols-outlined text-2xl" style={{ color: '#745b00' }}>account_tree</span>
+              </div>
+              <div>
+                <p style={{ color: '#4e4632' }} className="text-[10px] font-bold uppercase">Trees / Contamination</p>
+                <p className="text-base font-extrabold">{typeof meta?.n_estimators === 'number' ? meta.n_estimators : '100'} ({String(meta?.contamination ?? '0.05')})</p>
+              </div>
+            </div>
           </div>
-        </section>
-      )}
+
+          {/* Form & Score Results Layout */}
+          <div className="grid grid-cols-12 gap-6">
+
+            {/* 6-Feature Form */}
+            <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="col-span-7 border rounded-xl p-6 shadow-xs flex flex-col gap-4">
+              <div>
+                <h3 className="text-base font-bold flex items-center gap-2">
+                  <span className="material-symbols-outlined" style={{ color: '#745b00' }}>tune</span>
+                  Feature Vector Input (6 Dimensions)
+                </h3>
+                <p style={{ color: '#4e4632' }} className="text-xs">
+                  Model features extracted from rental usage patterns. Score feature vectors against the trained scikit-learn model.
+                </p>
+              </div>
+
+              {/* Presets */}
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(PRESETS).map(([key, p]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => loadPreset(key)}
+                    style={{
+                      backgroundColor: preset === key ? '#ffcd11' : '#f7eddb',
+                      borderColor: preset === key ? '#745b00' : '#d1c5ab',
+                      color: preset === key ? '#6f5800' : '#1f1b10',
+                    }}
+                    className="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={handleScore} className="grid grid-cols-2 gap-4 text-xs mt-2">
+                <div>
+                  <label style={{ color: '#4e4632' }} className="font-bold block mb-1">Equipment ID</label>
+                  <input
+                    type="text"
+                    value={form.equipmentId}
+                    onChange={(e) => setField('equipmentId', e.target.value)}
+                    style={{ backgroundColor: '#fdf3e1', borderColor: '#d1c5ab' }}
+                    className="w-full p-2 border rounded focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ color: '#4e4632' }} className="font-bold block mb-1">Equipment Type</label>
+                  <select
+                    value={form.equipmentType}
+                    onChange={(e) => setField('equipmentType', e.target.value)}
+                    style={{ backgroundColor: '#fdf3e1', borderColor: '#d1c5ab' }}
+                    className="w-full p-2 border rounded focus:outline-none"
+                  >
+                    <option>Excavator</option>
+                    <option>Bulldozer</option>
+                    <option>Dump Truck</option>
+                    <option>Wheel Loader</option>
+                    <option>Crane</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ color: '#4e4632' }} className="font-bold block mb-1">Has Operator</label>
+                  <select
+                    value={form.hasOperator}
+                    onChange={(e) => setField('hasOperator', Number(e.target.value))}
+                    style={{ backgroundColor: '#fdf3e1', borderColor: '#d1c5ab' }}
+                    className="w-full p-2 border rounded focus:outline-none"
+                  >
+                    <option value={1}>Yes (1)</option>
+                    <option value={0}>No (0)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ color: '#4e4632' }} className="font-bold block mb-1">Has Site</label>
+                  <select
+                    value={form.hasSite}
+                    onChange={(e) => setField('hasSite', Number(e.target.value))}
+                    style={{ backgroundColor: '#fdf3e1', borderColor: '#d1c5ab' }}
+                    className="w-full p-2 border rounded focus:outline-none"
+                  >
+                    <option value={1}>Yes (1)</option>
+                    <option value={0}>No (0)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label style={{ color: '#4e4632' }} className="font-bold">Engine Hrs / Day</label>
+                    <span style={{ color: '#745b00' }} className="font-bold">{form.engineHoursPerDay.toFixed(1)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={30}
+                    step={0.1}
+                    value={form.engineHoursPerDay}
+                    onChange={(e) => setField('engineHoursPerDay', Number(e.target.value))}
+                    className="w-full accent-[#745b00]"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label style={{ color: '#4e4632' }} className="font-bold">Idle Hrs / Day</label>
+                    <span style={{ color: '#745b00' }} className="font-bold">{form.idleHoursPerDay.toFixed(1)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={20}
+                    step={0.1}
+                    value={form.idleHoursPerDay}
+                    onChange={(e) => setField('idleHoursPerDay', Number(e.target.value))}
+                    className="w-full accent-[#745b00]"
+                  />
+                </div>
+
+                <div className="col-span-2 pt-2 flex justify-between items-center">
+                  <p style={{ color: '#80765f' }} className="text-[11px]">
+                    POST /api/ml/predict → Ingests vector into FastAPI Python service.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleScore()}
+                    disabled={scoring || !health?.model_loaded}
+                    style={{ backgroundColor: '#745b00', color: '#ffffff' }}
+                    className="px-6 py-2.5 rounded-lg font-bold uppercase text-xs hover:opacity-90 cursor-pointer shadow-xs"
+                  >
+                    {scoring ? 'Scoring Vector...' : '🎯 Score Feature Vector'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Score Output & Metadata */}
+            <div className="col-span-5 flex flex-col gap-6">
+
+              {/* Score Gauge Result */}
+              <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="border rounded-xl p-6 shadow-xs flex flex-col gap-4">
+                <h3 className="text-base font-bold flex items-center gap-2">
+                  <span className="material-symbols-outlined" style={{ color: '#745b00' }}>assessment</span>
+                  Prediction Output
+                </h3>
+
+                {result ? (
+                  <div style={{ backgroundColor: '#fdf3e1', borderColor: '#d1c5ab' }} className="p-5 border rounded-xl flex flex-col items-center gap-3">
+                    <div
+                      style={{
+                        backgroundColor: result.isAnomaly ? '#ffdad6' : '#f7eddb',
+                        borderColor: result.isAnomaly ? '#ba1a1a' : '#2e7d32',
+                        color: result.isAnomaly ? '#ba1a1a' : '#2e7d32',
+                      }}
+                      className="w-24 h-24 rounded-full border-4 flex flex-col items-center justify-center shadow-xs"
+                    >
+                      <span className="text-3xl font-black">{scorePct}%</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider">Score</span>
+                    </div>
+
+                    <div className="text-center">
+                      <span
+                        style={{
+                          backgroundColor: result.isAnomaly ? '#ba1a1a' : '#2e7d32',
+                          color: '#ffffff',
+                        }}
+                        className="px-3 py-1 rounded text-xs font-black uppercase"
+                      >
+                        {result.isAnomaly ? 'ANOMALY DETECTED' : 'NORMAL PATTERN'}
+                      </span>
+                      <p className="text-xs font-bold mt-2 text-[#1f1b10]">{result.message}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-xs text-[#80765f]">
+                    <span className="material-symbols-outlined text-4xl mb-1 text-[#d1c5ab]">radar</span>
+                    <p className="font-bold">No prediction score yet</p>
+                    <p className="text-[10px] mt-0.5">Select a feature preset and click Score Feature Vector.</p>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </main>
     </div>
   );
 }
