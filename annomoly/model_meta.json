@@ -1,5 +1,5 @@
 {
-  "trained_at": "2026-07-30T12:13:09.069805+00:00",
+  "trained_at": "2026-07-30T15:25:55.092357+00:00",
   "n_samples": 10800,
   "n_train_rows": 12000,
   "n_estimators": 200,
@@ -25,7 +25,7 @@
   ],
   "feature_dim": 14,
   "train_on_normal_only": true,
-  "training_time_ms": 800.55,
+  "training_time_ms": 607.08,
   "csv_path": "D:\\STUDY\\cat\\annomoly\\training-data.csv",
   "anomaly_rate_pct": 10.0,
   "metrics": {

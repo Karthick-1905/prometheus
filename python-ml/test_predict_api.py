@@ -137,19 +137,19 @@ def main() -> None:
         ),
     ]
 
-    print("\n── /predict cases ──")
+    print("\n-- /predict cases --")
     for name, body in cases:
         try:
             out = post("/predict", body)
             print(
-                f"  {name:12s} → isAnomaly={out['isAnomaly']}  "
+                f"  {name:12s} -> isAnomaly={out['isAnomaly']}  "
                 f"score={out['anomalyScore']:.3f}  conf={out['confidence']}"
             )
             print(f"               {out['message']}")
         except urllib.error.HTTPError as e:
-            print(f"  {name:12s} → HTTP {e.code}: {e.read().decode()}")
+            print(f"  {name:12s} -> HTTP {e.code}: {e.read().decode()}")
 
-    print("\nOK — API test complete")
+    print("\nOK - API test complete")
 
 
 if __name__ == "__main__":

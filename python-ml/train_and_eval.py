@@ -130,7 +130,7 @@ def smoke_predict() -> None:
         ),
     ]
 
-    print("\n── Smoke predict tests ──")
+    print("\n-- Smoke predict tests --")
     ok = 0
     for name, vec, expect_anom in cases:
         is_anom, score, conf = predictor.score(vec)
@@ -157,22 +157,22 @@ def main() -> None:
     args = parser.parse_args()
 
     print("=" * 64)
-    print(" CAT Fleet — Isolation Forest train & evaluate (Python/sklearn)")
+    print(" CAT Fleet - Isolation Forest train & evaluate (Python/sklearn)")
     print("=" * 64)
 
     if not args.skip_generate:
         from generate_training_data import generate
         import pandas as pd
 
-        print(f"\n[1/3] Generating {args.n:,} training rows…")
+        print(f"\n[1/3] Generating {args.n:,} training rows...")
         df = generate(n_samples=args.n, anomaly_rate=args.anomaly_rate)
         os.makedirs(os.path.dirname(os.path.abspath(args.csv)), exist_ok=True)
         df.to_csv(args.csv, index=False)
         print(f"      Wrote {args.csv}  ({len(df):,} rows, anomalies={int(df['isAnomaly'].sum())})")
     else:
-        print(f"\n[1/3] Skip generate — using existing {args.csv}")
+        print(f"\n[1/3] Skip generate - using existing {args.csv}")
 
-    print("\n[2/3] Training IsolationForest…")
+    print("\n[2/3] Training IsolationForest...")
     _clf, _scaler, meta = train(
         csv_path=args.csv,
         n_estimators=args.n_estimators,
@@ -191,8 +191,8 @@ def main() -> None:
     print(f"  model : {MODEL_PATH}")
     print(f"  scaler: {SCALER_PATH}")
     print(f"  meta  : {META_PATH}")
-    print("\nNext: start ML server →  cd python-ml && python main.py")
-    print("      then hybrid ingest →  npm run ingest")
+    print("\nNext: start ML server ->  cd python-ml && python main.py")
+    print("      then hybrid ingest ->  npm run ingest")
     print("=" * 64)
 
 

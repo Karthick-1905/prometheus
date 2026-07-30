@@ -301,7 +301,7 @@ def main() -> None:
     args = parser.parse_args()
 
     print("=" * 60)
-    print(" CAT Fleet — Training Data Generator")
+    print(" CAT Fleet - Training Data Generator")
     print("=" * 60)
     print(f"Samples:      {args.n:,}")
     print(f"Anomaly rate: {args.anomaly_rate:.0%}")
@@ -313,7 +313,7 @@ def main() -> None:
     df.to_csv(out_path, index=False)
 
     n_a = int(df["isAnomaly"].sum())
-    print(f"\nWrote {len(df):,} rows → {out_path}")
+    print(f"\nWrote {len(df):,} rows -> {out_path}")
     print(f"  Normal:   {len(df) - n_a:,}")
     print(f"  Anomaly:  {n_a:,} ({n_a / len(df):.1%})")
     print("\nAnomaly type breakdown:")

@@ -197,7 +197,7 @@ def train(
             "decision_threshold": decision_threshold,
         }
 
-        print("\n── Hold-out evaluation (isAnomaly labels) ──")
+        print("\n-- Hold-out evaluation (isAnomaly labels) --")
         print(classification_report(y_eval, y_hat, target_names=["normal", "anomaly"], digits=4))
         print("Confusion matrix [[TN FP],[FN TP]]:")
         print(np.array(metrics["confusion_matrix"]))
