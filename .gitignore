@@ -20,6 +20,7 @@ Backend/.env.example
 .idea/
 .vscode/
 *.log
+.agents
 
 # Legacy archive (old Next.js monorepo — safe to delete)
 _legacy/
