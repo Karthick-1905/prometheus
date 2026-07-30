@@ -22,7 +22,7 @@ import OperatorDashboard from './pages/operator/Dashboard';
 import OperatorScanQR from './pages/operator/ScanQR';
 import OperatorCurrentAssignment from './pages/operator/CurrentAssignment';
 import OperatorActivityHistory from './pages/operator/ActivityHistory';
-import DemandLab from './pages/DemandLab';
+import DemandForecastPage from './pages/DemandForecast';
 import DealerDemandPage from './pages/DealerDemand';
 import SystemOperations from './pages/admin/SystemOperations';
 import { GuestOnly, RequireRole } from './routes/ProtectedRoute';
@@ -64,7 +64,7 @@ export default function App() {
         <Route path="/fleet/utilization" element={<FleetUtilization />} />
         <Route path="/fleet/telemetry" element={<FleetLiveTelemetry />} />
         <Route path="/fleet/anomalies" element={<FleetAnomalyDetection />} />
-        <Route path="/fleet/demand" element={<DemandLab />} />
+        <Route path="/fleet/demand" element={<DemandForecastPage />} />
 
         {/* Dealer */}
         <Route path="/dealer/dashboard" element={<DealerDashboard />} />
@@ -87,7 +87,7 @@ export default function App() {
 
         {/* System Administrator */}
         <Route path="/admin/system" element={<SystemOperations />} />
-        <Route path="/admin/demand" element={<DemandLab />} />
+        <Route path="/admin/demand" element={<DemandForecastPage />} />
 
       </Route>
 

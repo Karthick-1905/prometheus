@@ -201,8 +201,26 @@ export const demandPlatformApi = {
 export const liveApi = {
   fleet: (onEvent: Parameters<typeof readEventStream>[1], signal?: AbortSignal) =>
     readEventStream('/api/v1/live/fleet?intervalMs=1000&maxTicks=120', onEvent, signal),
-  logs: (onEvent: Parameters<typeof readEventStream>[1], signal?: AbortSignal) =>
-    readEventStream('/api/v1/live/logs?intervalMs=1000&maxTicks=120', onEvent, signal),
+  /** Redis-backed live machinery logs from ingestion (telemetry:events). */
+  logs: (
+    onEvent: Parameters<typeof readEventStream>[1],
+    signal?: AbortSignal,
+    opts?: { equipmentId?: string; maxSeconds?: number },
+  ) => {
+    const params = new URLSearchParams({
+      source: 'redis',
+      maxSeconds: String(opts?.maxSeconds ?? 300),
+      recentLimit: '50',
+    });
+    if (opts?.equipmentId) params.set('equipmentId', opts.equipmentId);
+    return readEventStream(`/api/v1/live/logs?${params}`, onEvent, signal);
+  },
+  logsDb: (onEvent: Parameters<typeof readEventStream>[1], signal?: AbortSignal) =>
+    readEventStream(
+      '/api/v1/live/logs?source=db&intervalMs=1000&maxTicks=120',
+      onEvent,
+      signal,
+    ),
   alerts: (onEvent: Parameters<typeof readEventStream>[1], signal?: AbortSignal) =>
     readEventStream('/api/v1/live/alerts?intervalMs=1000&maxTicks=120', onEvent, signal),
   site: (
@@ -215,4 +233,5 @@ export const liveApi = {
       onEvent,
       signal,
     ),
+  redisStatus: () => request<Envelope<JsonRecord>>('/api/v1/live/redis/status'),
 };

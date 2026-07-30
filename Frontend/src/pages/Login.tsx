@@ -36,7 +36,7 @@ export default function LoginPage() {
   };
 
   return (
-    <>
+    <div className="guest-scroll">
       <main className="login-shell">
         <section className="login-intro">
           <div className="brand-lockup">
@@ -108,6 +108,6 @@ export default function LoginPage() {
         </form>
       </main>
       <InstallAppBanner />
-    </>
+    </div>
   );
 }

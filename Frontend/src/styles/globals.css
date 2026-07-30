@@ -33,18 +33,55 @@
   padding: 0;
 }
 
-html, body {
+html {
+  height: 100%;
+}
+
+html,
+body {
   font-family: var(--font-sans);
   background-color: #fff8f0;
   color: #1f1b10;
-  min-height: 100vh;
-  min-height: 100dvh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  /* Prevent rubber-band scroll issues in standalone PWA */
-  overscroll-behavior-y: none;
   /* iOS: avoid auto text zoom on form focus */
   -webkit-text-size-adjust: 100%;
+}
+
+body {
+  height: 100%;
+  max-height: 100dvh;
+  overflow: hidden; /* scroll lives in #app-scroll-main or .guest-scroll */
+  overscroll-behavior-y: none;
+}
+
+#root {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+/* Authenticated pages: primary scroll container */
+.app-shell {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.app-scroll-main {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  /* Ensure long pages always scroll even if a child tries to trap events */
+  touch-action: pan-y;
+}
+
+/* Guest pages (login) that sit outside RoleLayout */
+.guest-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Standalone PWA (installed home-screen app) */
@@ -785,4 +822,178 @@ button:disabled {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ── Live telemetry / Redis logs ─────────────────────────────── */
+.live-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.live-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.redis-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--outline-variant);
+  background: var(--bg-surface-low);
+}
+.redis-pill.is-ok {
+  border-color: #8bc34a;
+  background: rgba(76, 175, 80, 0.12);
+  color: #1b5e20;
+}
+.redis-pill.is-down {
+  border-color: #ef9a9a;
+  background: rgba(244, 67, 54, 0.1);
+  color: #b71c1c;
+}
+.live-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.68rem;
+  color: var(--on-surface-variant);
+}
+.live-filter input {
+  min-width: 100px;
+  padding: 6px 10px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--bg-surface-lowest);
+}
+.live-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--on-surface-variant);
+}
+.live-stats span {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--bg-surface-container);
+}
+.live-log-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 62vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+.live-log-card {
+  border: 1px solid var(--outline-variant);
+  border-radius: 10px;
+  background: var(--bg-surface-lowest);
+  padding: 10px 12px;
+  animation: live-event-enter 0.35s var(--ease-out-quint, ease-out) both;
+}
+.live-log-card.type-alert_raised {
+  border-left: 4px solid var(--error);
+}
+.live-log-card.type-telemetry_received {
+  border-left: 4px solid var(--tertiary);
+}
+.live-log-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.live-log-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.badge-type,
+.badge-sev,
+.badge-warn {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.badge-type {
+  background: rgba(0, 104, 116, 0.12);
+  color: var(--tertiary);
+}
+.badge-sev.sev-critical {
+  background: var(--error-container);
+  color: var(--error);
+}
+.badge-sev.sev-warning {
+  background: rgba(255, 205, 17, 0.35);
+  color: #5d4a00;
+}
+.badge-sev.sev-info {
+  background: var(--bg-surface-container);
+  color: var(--on-surface-variant);
+}
+.badge-warn {
+  background: #fff3e0;
+  color: #e65100;
+}
+.live-log-card time {
+  color: var(--on-surface-variant);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+.live-log-body strong {
+  display: block;
+  font-size: 0.82rem;
+}
+.live-log-body p {
+  margin-top: 4px;
+  color: var(--on-surface-variant);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+.live-tel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.live-tel-chips span {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--bg-surface-low);
+  color: var(--on-surface);
+}
+.howto-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--on-surface-variant);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.howto-list code {
+  font-size: 0.72rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-surface-container);
+}
+.stack-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
