@@ -54,8 +54,7 @@ def db_engine():
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
-    # Import forecasting models only if needed for create_all — skip to avoid
-    # coupling fleet tests to demand schema. Domain tables only.
+    # Domain tables only — avoid coupling fleet tests to demand forecasting schema.
     Base.metadata.create_all(
         bind=engine,
         tables=[
@@ -87,7 +86,7 @@ def db_session(db_engine):
 
 @pytest.fixture()
 def seed_fleet(db_session: Session):
-    """Minimal dealer / company / equipment / contract / telemetry / alert."""
+    """Minimal dealer / company / equipment / contract / telemetry / usage / alert."""
     dealer = Dealer(dealer_name="Metro CAT", email="dealer@example.com")
     company = Company(company_name="North Build Co", email="fleet@example.com")
     db_session.add_all([dealer, company])
@@ -154,15 +153,9 @@ def seed_fleet(db_session: Session):
         status=AssignmentStatus.ACTIVE,
     )
     db_session.add(assignment)
-
-    # SQLite does not autoincrement BigInteger PKs the same way as Postgres —
-    # set telemetry_id explicitly for tests.
-    tel1 = EquipmentTelemetry(
-        telemetry_id=1,
-        equipment_id=eq1.equipment_id,
     db_session.flush()
 
-    # Usage logs (primary analytics source for eq1)
+    # Usage logs — primary analytics source for excavator (eq1)
     usage1 = UsageLog(
         assignment_id=assignment.assignment_id,
         runtime_hours=Decimal("28.0"),
@@ -185,7 +178,7 @@ def seed_fleet(db_session: Session):
 
     # SQLite does not autoincrement BigInteger PKs the same way as Postgres —
     # set telemetry_id explicitly for tests.
-    # eq1: two readings so engine-hour deltas work as telemetry fallback proof
+    # eq1: two readings (engine-hour deltas for telemetry fallback)
     tel1a = EquipmentTelemetry(
         telemetry_id=1,
         equipment_id=eq1.equipment_id,
@@ -220,15 +213,7 @@ def seed_fleet(db_session: Session):
         vibration_level=Decimal("2.0"),
         rental_status="Working",
     )
-    tel2 = EquipmentTelemetry(
-        telemetry_id=2,
-        equipment_id=eq2.equipment_id,
-        timestamp=now - timedelta(hours=3),
-        engine_status="OFF",
-        fuel_level=Decimal("40.0"),
-        engine_hours=Decimal("800.0"),
-        idle_hours=Decimal("200.0"),
-    # eq2: mostly idle / off → underutilized via telemetry (no usage logs)
+    # eq2: mostly idle/off → underutilized via telemetry (no usage logs)
     tel2a = EquipmentTelemetry(
         telemetry_id=3,
         equipment_id=eq2.equipment_id,
@@ -246,7 +231,6 @@ def seed_fleet(db_session: Session):
         vibration_level=Decimal("0.5"),
         rental_status="Overdue",
     )
-    db_session.add_all([tel1, tel2])
     tel2b = EquipmentTelemetry(
         telemetry_id=4,
         equipment_id=eq2.equipment_id,
