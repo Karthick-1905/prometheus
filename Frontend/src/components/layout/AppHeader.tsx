@@ -19,11 +19,12 @@ export default function AppHeader({ title, subtitle }: { title?: string; subtitl
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="md:hidden w-9 h-9 rounded-lg border border-outline-variant bg-surface-container flex items-center justify-center cursor-pointer"
+            className="motion-control md:hidden w-9 h-9 rounded-lg border border-outline-variant bg-surface-container flex items-center justify-center cursor-pointer"
             onClick={() => setOpen((v) => !v)}
-            aria-label="Menu"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
           >
-            <span className="material-symbols-outlined">{open ? 'close' : 'menu'}</span>
+            <span className={`menu-icon material-symbols-outlined ${open ? 'is-open' : ''}`}>{open ? 'close' : 'menu'}</span>
           </button>
           <div>
             {title ? (
@@ -45,8 +46,8 @@ export default function AppHeader({ title, subtitle }: { title?: string; subtitl
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="hidden sm:flex items-center gap-2 bg-surface-container-low border border-outline-variant px-3 py-1 rounded text-xs font-semibold text-on-surface-variant">
-            <span className="w-2 h-2 rounded-full bg-[#2E7D32]" />
+          <div className="connection-status hidden sm:flex items-center gap-2 bg-surface-container-low border border-outline-variant px-3 py-1 rounded text-xs font-semibold text-on-surface-variant">
+            <span className="connection-dot w-2 h-2 rounded-full bg-[#2E7D32]" />
             API connected
           </div>
           <Link
@@ -67,7 +68,7 @@ export default function AppHeader({ title, subtitle }: { title?: string; subtitl
       </div>
 
       {open && (
-        <nav className="md:hidden border-t border-outline-variant bg-surface-container-low px-3 py-2 flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
+        <nav className="mobile-menu md:hidden border-t border-outline-variant bg-surface-container-low px-3 py-2 flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
           {items.map((item) => (
             <NavLink
               key={item.path}

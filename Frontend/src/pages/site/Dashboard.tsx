@@ -59,7 +59,7 @@ export default function SiteDashboard() {
       </div>
       {(sites.error || site.error) && <FeedbackBanner tone="error">{sites.error ?? site.error}</FeedbackBanner>}
       {sites.loading || site.loading ? <PageSkeleton rows={7} /> : (
-        <>
+        <div className="dashboard-content">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <StatCard label="Active assignments" value={summary?.activeAssignments ?? 0} icon="assignment" />
             <StatCard label="Working" value={summary?.equipment.filter((item) => item.status === 'ACTIVE').length ?? 0} icon="play_circle" accent="success" />
@@ -74,7 +74,7 @@ export default function SiteDashboard() {
               <form className="stack-form" onSubmit={createSite}><label className="field"><span>Site name</span><input value={form.siteName} onChange={(event) => setForm((current) => ({ ...current, siteName: event.target.value }))} required /></label><label className="field"><span>Location</span><input value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} /></label><label className="field"><span>Status</span><select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}><option>ACTIVE</option><option>INACTIVE</option></select></label><button className="btn-primary" type="submit">Create site</button></form>
             </Panel>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

@@ -163,6 +163,188 @@ html, body {
 }
 .btn-secondary:hover { background: #f1e7d5; }
 
+/* Motion language: fast, operational, and tied to state or feedback. */
+:root {
+  --motion-fast: 120ms;
+  --motion-state: 200ms;
+  --motion-layout: 320ms;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-primary,
+.btn-secondary,
+.motion-control,
+.sidebar-link,
+.mobile-nav-link,
+.quick-actions a,
+.segmented button,
+.field input,
+.field select,
+.field textarea {
+  transition:
+    color var(--motion-state) var(--ease-out-quart),
+    background-color var(--motion-state) var(--ease-out-quart),
+    border-color var(--motion-state) var(--ease-out-quart),
+    box-shadow var(--motion-state) var(--ease-out-quart),
+    transform var(--motion-fast) var(--ease-out-quart);
+}
+
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+.motion-control:active,
+.quick-actions a:active,
+.segmented button:active {
+  transform: scale(0.97);
+}
+
+.sidebar-link .material-symbols-outlined,
+.mobile-nav-link .material-symbols-outlined,
+.quick-actions a .material-symbols-outlined,
+.menu-icon {
+  transition: transform var(--motion-state) var(--ease-out-quint);
+}
+
+.sidebar-link:hover .material-symbols-outlined,
+.quick-actions a:hover .material-symbols-outlined {
+  transform: translateX(2px);
+}
+
+.mobile-nav-link[aria-current="page"] .material-symbols-outlined {
+  transform: translateY(-2px);
+}
+
+.menu-icon.is-open {
+  transform: rotate(90deg);
+}
+
+.mobile-menu {
+  transform-origin: top;
+  animation: menu-enter var(--motion-state) var(--ease-out-quint) both;
+}
+
+.dashboard-content {
+  animation: content-ready var(--motion-state) var(--ease-out-quart) both;
+}
+
+.feedback {
+  animation: feedback-enter var(--motion-state) var(--ease-out-quint) both;
+}
+
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    border-color var(--motion-state) var(--ease-out-quart),
+    background-color var(--motion-state) var(--ease-out-quart);
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--primary-container) 30%, transparent);
+  opacity: 0;
+}
+
+.stat-card.is-updating::after {
+  animation: value-flash 420ms var(--ease-out-quart);
+}
+
+.stat-card.is-updating .stat-card-value {
+  animation: value-update 420ms var(--ease-out-quint);
+}
+
+.is-live-sensor {
+  animation: live-sensor 2.4s ease-in-out infinite;
+}
+
+.connection-dot {
+  box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.24);
+  animation: connection-pulse 2.8s ease-out infinite;
+}
+
+.meter-fill {
+  transform-origin: left;
+  animation: meter-reveal 480ms var(--ease-out-quint) both;
+}
+
+.is-spinning {
+  animation: control-spin 700ms linear infinite;
+}
+
+.drawer-backdrop {
+  animation: backdrop-enter var(--motion-state) var(--ease-out-quart) both;
+}
+
+.detail-drawer {
+  animation: drawer-enter var(--motion-layout) var(--ease-out-quint) both;
+}
+
+.event-feed article:first-child {
+  animation: live-event-enter var(--motion-state) var(--ease-out-quint) both;
+}
+
+@keyframes menu-enter {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.98); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes content-ready {
+  from { opacity: 0.72; filter: blur(2px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+@keyframes feedback-enter {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes value-flash {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes value-update {
+  0% { opacity: 0.65; transform: translateY(3px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes live-sensor {
+  0%, 70%, 100% { opacity: 1; transform: scale(1); }
+  82% { opacity: 0.72; transform: scale(1.08); }
+}
+
+@keyframes connection-pulse {
+  0%, 65% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.24); }
+  100% { box-shadow: 0 0 0 6px rgba(46, 125, 50, 0); }
+}
+
+@keyframes meter-reveal {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes control-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes backdrop-enter {
+  from { background-color: rgba(31, 27, 16, 0); }
+}
+
+@keyframes drawer-enter {
+  from { transform: translateX(28px); opacity: 0.85; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes live-event-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
