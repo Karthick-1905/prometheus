@@ -3,7 +3,7 @@
 
 .PHONY: help up down restart logs ps redis-cli \
 	run-subscriber run-publisher run-api \
-	install install-redis test
+	install install-redis test seed
 
 PYTHON   ?= .venv/bin/python
 PIP      ?= .venv/bin/pip
@@ -33,6 +33,7 @@ help:
 	@echo "Setup / tests"
 	@echo "  make install         pip install -r requirements.txt"
 	@echo "  make test            Run pytest (fleet + demand + unit)"
+	@echo "  make seed            Wipe domain tables + seed 50+ demo rows"
 	@echo ""
 	@echo "Env defaults:"
 	@echo "  REDIS_URL=$(REDIS_URL)"
@@ -90,3 +91,6 @@ install-redis:
 
 test:
 	$(PYTHON) -m pytest tests/ -q
+
+seed:
+	$(PYTHON) scripts/seed_demo_data.py
