@@ -54,7 +54,7 @@ export class MqttSubscriber {
     logger.debug({ topic, length: rawPayload.length }, 'Received MQTT payload message');
 
     // Edge case check: Unknown topic filter
-    if (!topic.startsWith('telemetry/')) {
+    if (!topic.startsWith('telemetry/') && !topic.startsWith('caterpillar/telemetry/')) {
       logger.warn({ topic }, 'Ignored message from unknown or unhandled topic pattern');
       return;
     }

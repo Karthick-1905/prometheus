@@ -73,9 +73,9 @@ export const TelemetrySchema = z.object({
     .number({ required_error: 'vibrationLevel is required' })
     .min(0, 'vibrationLevel must be >= 0'),
 
-  rentalStatus: z.enum(['Available', 'Working', 'Idle', 'Maintenance', 'Returned'], {
+  rentalStatus: z.enum(['Available', 'Working', 'Idle', 'Maintenance', 'Returned', 'Overdue', 'Assigned'], {
     errorMap: () => ({
-      message: "rentalStatus must be one of: 'Available', 'Working', 'Idle', 'Maintenance', 'Returned'",
+      message: "rentalStatus must be one of: 'Available', 'Working', 'Idle', 'Maintenance', 'Returned', 'Overdue', 'Assigned'",
     }),
   }),
 });

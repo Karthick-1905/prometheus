@@ -5,6 +5,7 @@ import { EquipmentRepository } from '../repositories/equipment.repository';
 import { TelemetryRepository } from '../repositories/telemetry.repository';
 import { RentalRepository } from '../repositories/rental.repository';
 import { IngestionResult } from '../types/telemetry';
+import { AnomalyService } from './anomaly/anomaly.service';
 
 export class IngestionService {
   private equipmentRepo: EquipmentRepository;
@@ -103,6 +104,9 @@ export class IngestionService {
         },
         'Successfully ingested telemetry and synchronized state in database'
       );
+
+      // Step 5: Anomaly Detection (non-blocking — runs after transaction commits)
+      AnomalyService.detectAndRecord(validatedData);
 
       return {
         success: true,

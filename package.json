@@ -8,12 +8,13 @@
     "start": "next start",
     "ingest": "tsx src/index.ts",
     "test:payloads": "tsx tests/test-payloads.ts",
+    "test:if": "tsx scripts/test_isolation_forest.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "lint": "eslint"
   },
   "dependencies": {
-    "@prisma/client": "^6.2.1",
+    "@prisma/client": "^6.19.3",
     "dotenv": "^16.4.7",
     "mqtt": "^5.10.3",
     "next": "16.2.12",

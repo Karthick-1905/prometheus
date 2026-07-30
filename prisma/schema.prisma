@@ -42,6 +42,27 @@ enum AssignmentStatus {
   RETURNED
 }
 
+enum AnomalySeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+enum AnomalyType {
+  UNASSIGNED_OPERATOR
+  ENGINE_OVERHEAT
+  SEVERE_VIBRATION
+  EXPIRED_RENTAL
+  MISSING_GPS
+  LOW_BATTERY
+  ENGINE_HOURS_TAMPER
+  EXCESSIVE_IDLE
+  FUEL_LEAK_THEFT
+  GEOFENCE_VIOLATION
+  /// Isolation Forest statistical outlier (hybrid ML phase)
+  STATISTICAL_OUTLIER
+}
+
 // =======================
 // Models
 // =======================
@@ -184,4 +205,23 @@ model UsageLog {
   assignment EquipmentAssignment @relation(fields: [assignmentId], references: [assignmentId], onDelete: Cascade)
 
   @@map("UsageLog")
+}
+
+model AnomalyAlert {
+  alertId         Int             @id @default(autoincrement()) @map("alert_id")
+  equipmentId     String          @map("equipment_id") @db.VarChar
+  equipmentType   String?         @map("equipment_type") @db.VarChar
+  siteId          String?         @map("site_id") @db.VarChar
+  operatorId      String?         @map("operator_id") @db.VarChar
+  anomalyType     AnomalyType     @map("anomaly_type")
+  severity        AnomalySeverity
+  description     String
+  recommendation  String
+  triggerValue    String?         @map("trigger_value") @db.VarChar
+  thresholdValue  String?         @map("threshold_value") @db.VarChar
+  isResolved      Boolean         @default(false) @map("is_resolved")
+  resolvedAt      DateTime?       @map("resolved_at") @db.Timestamp(6)
+  detectedAt      DateTime        @default(now()) @map("detected_at") @db.Timestamp(6)
+
+  @@map("AnomalyAlert")
 }
