@@ -74,10 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(sites.router)
     app.include_router(dealers.router)
     app.include_router(live.router)
-<<<<<<< HEAD
-=======
     app.include_router(analytics.router)
->>>>>>> 936f381d82bbf2b2cba0ba6bfa09b598192e58b2
     return app
 
 
