@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Enum for Equipment Rental Status
+enum RentalStatus {
+  Available
+  Working
+  Idle
+  Maintenance
+  Returned
+}
+
+/// Equipment Model: Stores the latest state of each equipment entity
+model Equipment {
+  equipmentId     String       @id
+  equipmentType   String
+  dealerId        String
+  currentSite     String?
+  currentOperator String?
+  rentalStatus    RentalStatus @default(Available)
+  lastSeen        DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  telemetries     Telemetry[]
+  rentals         Rental[]
+
+  @@map("equipment")
+}
+
+/// Telemetry Model: Time-series log storing every validated MQTT payload packet
+model Telemetry {
+  id                String    @id @default(uuid())
+  timestamp         DateTime
+  equipmentId       String
+  fuelLevel         Float
+  engineHours       Float
+  idleHours         Float
+  speed             Float
+  latitude          Float
+  longitude         Float
+  engineTemperature Float
+  hydraulicPressure Float
+  batteryVoltage    Float
+  loadPercentage    Float
+  vibrationLevel    Float
+  createdAt         DateTime  @default(now())
+
+  equipment         Equipment @relation(fields: [equipmentId], references: [equipmentId], onDelete: Cascade)
+
+  @@index([equipmentId, timestamp])
+  @@map("telemetry")
+}
+
+/// Rental Model: Stores business rental tracking and usage information
+model Rental {
+  id             String    @id @default(uuid())
+  equipmentId    String
+  siteId         String
+  checkInDate    DateTime  @default(now())
+  checkOutDate   DateTime?
+  rentalDays     Int       @default(1)
+  lastOperatorId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  equipment      Equipment @relation(fields: [equipmentId], references: [equipmentId], onDelete: Cascade)
+
+  @@index([equipmentId, siteId])
+  @@map("rental")
+}
