@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 interface StatCardProps {
   label: string;
   value: string | number;
@@ -20,17 +22,32 @@ export default function StatCard({
   accent = 'default',
   hint,
 }: StatCardProps) {
+  const previousValue = useRef(value);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    if (Object.is(previousValue.current, value)) return;
+    previousValue.current = value;
+    setIsUpdating(true);
+    const timer = window.setTimeout(() => setIsUpdating(false), 420);
+    return () => window.clearTimeout(timer);
+  }, [value]);
+
   return (
     <div
-      className={`bg-surface-container-lowest border ${accentMap[accent]} rounded-xl p-4 shadow-sm flex flex-col gap-2`}
+      className={`stat-card bg-surface-container-lowest border ${accentMap[accent]} rounded-xl p-4 shadow-sm flex flex-col gap-2 ${isUpdating ? 'is-updating' : ''}`}
     >
       <div className="flex items-center justify-between">
         <span className="font-label-md text-[10px] uppercase tracking-wider text-on-surface-variant">
           {label}
         </span>
-        <span className="material-symbols-outlined text-primary text-xl">{icon}</span>
+        <span className={`stat-card-icon material-symbols-outlined text-primary text-xl ${icon === 'sensors' ? 'is-live-sensor' : ''}`}>
+          {icon}
+        </span>
       </div>
-      <div className="font-headline-lg text-2xl font-black text-on-surface">{value}</div>
+      <div className="stat-card-value font-headline-lg text-2xl font-black text-on-surface" aria-live="polite">
+        {value}
+      </div>
       {hint && <p className="text-[11px] text-on-surface-variant">{hint}</p>}
     </div>
   );

@@ -30,11 +30,16 @@ export default function FleetDashboard() {
       <PageHeader
         title="Fleet Manager Dashboard"
         subtitle="Live rental commitments and seven-day operating performance"
-        actions={<button type="button" className="btn-secondary" onClick={() => void resource.reload()}>Refresh data</button>}
+        actions={
+          <button type="button" className="btn-secondary" onClick={() => void resource.reload()} disabled={resource.loading} aria-busy={resource.loading}>
+            <span className={`material-symbols-outlined text-base ${resource.loading ? 'is-spinning' : ''}`} aria-hidden="true">refresh</span>
+            {resource.loading ? 'Refreshing' : 'Refresh data'}
+          </button>
+        }
       />
       {resource.error && <FeedbackBanner tone="error">{resource.error}</FeedbackBanner>}
       {resource.loading ? <PageSkeleton rows={8} /> : (
-        <>
+        <div className="dashboard-content">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <StatCard label="Rented machines" value={n(totals.machinesRented)} icon="construction" />
             <StatCard label="Working" value={n(totals.working)} icon="play_circle" accent="success" />
@@ -57,7 +62,7 @@ export default function FleetDashboard() {
                     return (
                       <div className="data-list-row" key={String(site.siteId ?? index)}>
                         <div><strong>{text(site.siteName)}</strong><span>{n(site.machineCount)} machines · {n(site.runtimeHours).toFixed(1)} runtime hours</span></div>
-                        <div className="meter" aria-label={`${pct}% utilized`}><span style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                        <div className="meter" aria-label={`${pct}% utilized`}><span className="meter-fill" style={{ width: `${Math.min(100, pct)}%` }} /></div>
                         <strong>{pct.toFixed(1)}%</strong>
                       </div>
                     );
@@ -86,7 +91,7 @@ export default function FleetDashboard() {
               )}
             </Panel>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

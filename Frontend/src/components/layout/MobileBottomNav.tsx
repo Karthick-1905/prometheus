@@ -27,7 +27,7 @@ export default function MobileBottomNav() {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-lg min-w-0 touch-manipulation ${
+              `mobile-nav-link flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-lg min-w-0 touch-manipulation ${
                 isActive
                   ? 'text-on-primary-container bg-primary-container/80 font-black'
                   : 'text-on-surface-variant font-semibold'

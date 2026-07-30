@@ -38,7 +38,7 @@ export default function AppSidebar() {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-150 font-label-md text-xs uppercase border ${
+              `sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg font-label-md text-xs uppercase border ${
                 isActive
                   ? 'bg-primary-container text-on-primary-container font-bold border-primary shadow-sm'
                   : 'text-on-surface-variant hover:bg-surface-container border-transparent font-semibold'
@@ -68,7 +68,7 @@ export default function AppSidebar() {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs uppercase border ${
+                `sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs uppercase border ${
                   isActive
                     ? 'bg-surface-container-high text-on-surface font-bold border-outline-variant'
                     : 'text-on-surface-variant hover:bg-surface-container border-transparent font-semibold'
