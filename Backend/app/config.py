@@ -40,6 +40,17 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 12
     jwt_demo_auth_enabled: bool = True
 
+    # Notifications / email (SMTP optional — logs when unset)
+    frontend_public_url: str = "http://localhost:5173"
+    rental_ending_soon_days: int = 3
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@cat-rental.local"
+    smtp_use_tls: bool = True
+    email_enabled: bool = True
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

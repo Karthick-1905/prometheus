@@ -19,6 +19,7 @@ from app.db.session import get_db
 from app.main import app
 from app.models.domain import (
     AnomalyAlert,
+    AppNotification,
     Company,
     Dealer,
     Equipment,
@@ -68,6 +69,7 @@ def db_engine():
             EquipmentTelemetry.__table__,
             UsageLog.__table__,
             AnomalyAlert.__table__,
+            AppNotification.__table__,
         ],
     )
     yield engine

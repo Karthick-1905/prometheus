@@ -1,5 +1,6 @@
 from app.models.domain import (
     AnomalyAlert,
+    AppNotification,
     Company,
     Dealer,
     Equipment,
@@ -37,6 +38,7 @@ from app.models.forecasting import (
 
 __all__ = [
     "AnomalyAlert",
+    "AppNotification",
     "Company",
     "Dealer",
     "Equipment",

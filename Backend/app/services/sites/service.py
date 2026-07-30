@@ -224,9 +224,17 @@ class SiteService:
                 .options(
                     joinedload(EquipmentAssignment.site),
                     joinedload(EquipmentAssignment.contract).joinedload(RentalContract.equipment),
+                    joinedload(EquipmentAssignment.contract).joinedload(RentalContract.company),
+                    joinedload(EquipmentAssignment.contract).joinedload(RentalContract.dealer),
                 )
                 .where(EquipmentAssignment.assignment_id == assignment.assignment_id)
             ).unique().scalar_one()
+            try:
+                from app.services.notifications import NotificationService
+
+                NotificationService.notify_site_booking(db, assignment, send_email=True)
+            except Exception:  # noqa: BLE001
+                pass
             return {
                 "action": action,
                 "alreadyActive": False,
@@ -304,9 +312,17 @@ class SiteService:
             .options(
                 joinedload(EquipmentAssignment.site),
                 joinedload(EquipmentAssignment.contract).joinedload(RentalContract.equipment),
+                joinedload(EquipmentAssignment.contract).joinedload(RentalContract.company),
+                joinedload(EquipmentAssignment.contract).joinedload(RentalContract.dealer),
             )
             .where(EquipmentAssignment.assignment_id == a.assignment_id)
         ).unique().scalar_one()
+        try:
+            from app.services.notifications import NotificationService
+
+            NotificationService.notify_site_booking(db, a, send_email=True)
+        except Exception:  # noqa: BLE001 — booking must not fail if notify fails
+            pass
         return SiteService._assignment_dict(a)
 
     # ── helpers ────────────────────────────────────────────────────

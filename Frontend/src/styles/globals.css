@@ -708,6 +708,88 @@ button:disabled {
 .alert-row footer > span { color: var(--on-surface-variant); font-size: 0.68rem; }
 .alert-row footer div { display: flex; flex-wrap: wrap; gap: 6px; }
 
+/* Notifications page */
+.notification-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.notification-row:last-child { border-bottom: 0; }
+.notification-row.is-unread {
+  background: color-mix(in srgb, var(--primary-container) 18%, transparent);
+  margin: 0 -8px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 8px;
+  border-bottom-color: transparent;
+}
+.notification-row > .material-symbols-outlined {
+  color: var(--primary);
+  margin-top: 2px;
+}
+.notification-body strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.88rem;
+  color: var(--on-surface);
+}
+.notification-body p {
+  margin: 4px 0 0;
+  font-size: 0.76rem;
+  color: var(--on-surface-variant);
+  line-height: 1.4;
+  max-width: 62ch;
+}
+.notification-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.notification-type {
+  font-size: 0.66rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--on-surface-variant);
+}
+.notification-meta time {
+  margin-left: auto;
+  font-size: 0.66rem;
+  font-weight: 650;
+  color: var(--on-surface-variant);
+}
+.notification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.notification-email {
+  font-size: 0.66rem;
+  font-weight: 650;
+  color: var(--on-surface-variant);
+}
+.header-notify-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
 .operations-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
