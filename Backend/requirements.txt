@@ -22,3 +22,6 @@ paho-mqtt==1.6.1
 # Redis pub/sub (ingestion → anomaly detector)
 redis==5.2.1
 
+# Dashboard JWT auth
+PyJWT==2.13.0
+
