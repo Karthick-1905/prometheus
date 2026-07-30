@@ -1,6 +1,7 @@
 # Frontend
 Frontend/node_modules/
 Frontend/dist/
+*.tsbuildinfo
 
 # Backend
 Backend/venv/
@@ -29,3 +30,7 @@ node_modules/
 __pycache__/
 *.pyc
 .venv/
+Backend/artifacts/training-data.csv
+Backend/artifacts/demand_forecasting/*.csv
+Backend/artifacts/demand_forecasting/*.manifest.json
+Backend/pipeline/telemetry.csv

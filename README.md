@@ -17,7 +17,7 @@ Browser (Frontend :5173)
         ▼
 FastAPI (Backend :8000)
   ├── services/anomaly_detection  (rules + Isolation Forest)
-  ├── services/demand_forecasting (scaffold)
+  ├── services/demand_forecasting (direct 4-week forecasts + verification)
   ├── services/ingestion
   └── SQLAlchemy → Neon PostgreSQL
 ```
@@ -66,3 +66,6 @@ Prisma was replaced by **SQLAlchemy models** + **Alembic** migrations (same Neon
 - Old Next.js / mixed layout is archived under `_legacy/` (safe to delete once you confirm everything works).
 - `Backend/venv` is the Python virtualenv — activate it before running the API.
 - Model artifacts live in `Backend/artifacts/` (Isolation Forest joblib + training CSV).
+- Demand forecasting benchmarks multiple models and baselines, promotes units and
+  machine-hours independently, and publishes its time-aware evidence. See
+  [`docs/demand-forecasting.md`](docs/demand-forecasting.md).

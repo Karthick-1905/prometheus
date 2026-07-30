@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from '../components/AppLink';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -273,6 +273,12 @@ export default function MlLabPage() {
           </div>
         </div>
         <div className="header-right">
+          <Link to="/demand" className="nav-link-btn">
+            Demand plan
+          </Link>
+          <Link to="/dealer/demand" className="nav-link-btn">
+            Dealer view
+          </Link>
           <div className={`live-badge ${health?.reachable && health?.model_loaded ? '' : 'offline'}`}>
             <div className="live-dot" />
             {health?.reachable

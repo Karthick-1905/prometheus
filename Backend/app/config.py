@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
     log_level: str = "info"
     artifacts_dir: str = str(ARTIFACTS_DIR)
+    environment: str = "development"
+    demand_data_mode: str = "synthetic"
+    demand_demo_auth_enabled: bool = True
+    demand_synthetic_seed: int = 20260730
+    demand_model_dir: str = str(ARTIFACTS_DIR / "demand_forecasting")
 
     # Redis — pub/sub bus between ingestion and anomaly detection
     # docker-compose maps container :6379 → host :6380
@@ -44,6 +49,10 @@ class Settings(BaseSettings):
         if url.startswith("postgresql://"):
             return url.replace("postgresql://", "postgresql+psycopg2://", 1)
         return url
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() == "production"
 
 
 @lru_cache

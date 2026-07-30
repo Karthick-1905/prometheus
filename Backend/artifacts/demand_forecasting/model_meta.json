@@ -1,0 +1,894 @@
+{
+  "artifactVersion": 2,
+  "version": "demand-direct-v2-20260730-20260730180551",
+  "featureSchemaVersion": "2.0",
+  "unitServingMethod": "LAST_OBSERVED",
+  "hourServingMethod": "GRADIENT_BOOSTING",
+  "unitModelPromoted": false,
+  "hourModelPromoted": true,
+  "syntheticTraining": true,
+  "unitResidualBand": [
+    -1.0,
+    1.0
+  ],
+  "hourResidualBand": [
+    -31.205662366503685,
+    31.04445338969698
+  ],
+  "metrics": {
+    "verificationStatus": "SYNTHETIC_ENGINEERING_EVIDENCE_ONLY",
+    "validation": {
+      "strategy": "chronological_development_selection_calibration_then_untouched_holdout_plus_three_rolling_origins",
+      "selectionObjective": "minimum_horizon_weighted_mae",
+      "horizonWeights": {
+        "1": 4.0,
+        "2": 3.0,
+        "3": 2.0,
+        "4": 1.0
+      },
+      "developmentRows": 13080,
+      "selectionCalibrationRows": 3552,
+      "preHoldoutRefitRows": 16632,
+      "holdoutRows": 1964,
+      "selectionStart": "2026-01-19",
+      "holdoutStart": "2026-04-06",
+      "holdoutEnd": "2026-07-20",
+      "directHorizons": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "units": {
+      "servingMethod": "LAST_OBSERVED",
+      "selectionWinner": "RANDOM_FOREST",
+      "selectionWinnerKind": "model",
+      "modelPromoted": false,
+      "promotionGate": {
+        "rule": "selection-window model must not lose to selected baseline on untouched holdout",
+        "candidateModel": {
+          "method": "RANDOM_FOREST",
+          "count": 1964,
+          "mae": 0.5566,
+          "horizonWeightedMae": 0.5521,
+          "wape": 0.5186,
+          "bias": 0.1091,
+          "underforecastRate": 0.4226,
+          "overforecastRate": 0.5774,
+          "shortageWeightedError": 0.7803
+        },
+        "fallbackBaseline": {
+          "method": "LAST_OBSERVED",
+          "count": 1964,
+          "mae": 0.5275,
+          "horizonWeightedMae": 0.5181,
+          "wape": 0.4915,
+          "bias": 0.0631,
+          "underforecastRate": 0.2026,
+          "overforecastRate": 0.2551,
+          "shortageWeightedError": 0.7597
+        },
+        "passed": false
+      },
+      "finalHoldout": {
+        "count": 1964,
+        "mae": 0.5275,
+        "horizonWeightedMae": 0.5181,
+        "wape": 0.4915,
+        "bias": 0.0631,
+        "underforecastRate": 0.2026,
+        "overforecastRate": 0.2551,
+        "shortageWeightedError": 0.7597
+      },
+      "interval": {
+        "calibrationQuantiles": [
+          0.1,
+          0.9
+        ],
+        "holdoutCoverage": 0.942
+      },
+      "candidateModels": [
+        {
+          "method": "HIST_GRADIENT_BOOSTING",
+          "kind": "model",
+          "count": 3552,
+          "mae": 0.6131,
+          "horizonWeightedMae": 0.6089,
+          "wape": 0.5008,
+          "bias": 0.0958,
+          "underforecastRate": 0.4276,
+          "overforecastRate": 0.5724,
+          "shortageWeightedError": 0.8717
+        },
+        {
+          "method": "GRADIENT_BOOSTING",
+          "kind": "model",
+          "count": 3552,
+          "mae": 0.6294,
+          "horizonWeightedMae": 0.6227,
+          "wape": 0.5142,
+          "bias": 0.1291,
+          "underforecastRate": 0.4302,
+          "overforecastRate": 0.5698,
+          "shortageWeightedError": 0.8796
+        },
+        {
+          "method": "RANDOM_FOREST",
+          "kind": "model",
+          "count": 3552,
+          "mae": 0.6075,
+          "horizonWeightedMae": 0.6027,
+          "wape": 0.4963,
+          "bias": 0.0704,
+          "underforecastRate": 0.4428,
+          "overforecastRate": 0.5572,
+          "shortageWeightedError": 0.876
+        },
+        {
+          "method": "POISSON_REGRESSION",
+          "kind": "model",
+          "count": 3552,
+          "mae": 0.6578,
+          "horizonWeightedMae": 0.6463,
+          "wape": 0.5374,
+          "bias": 0.0901,
+          "underforecastRate": 0.4566,
+          "overforecastRate": 0.5434,
+          "shortageWeightedError": 0.9417
+        }
+      ],
+      "baselines": [
+        {
+          "method": "LAST_OBSERVED",
+          "kind": "baseline",
+          "count": 3552,
+          "mae": 0.6565,
+          "horizonWeightedMae": 0.6293,
+          "wape": 0.5363,
+          "bias": 0.0304,
+          "underforecastRate": 0.2494,
+          "overforecastRate": 0.2568,
+          "shortageWeightedError": 0.9696
+        },
+        {
+          "method": "MOVING_AVERAGE_4",
+          "kind": "baseline",
+          "count": 3552,
+          "mae": 0.6636,
+          "horizonWeightedMae": 0.6424,
+          "wape": 0.5421,
+          "bias": 0.0447,
+          "underforecastRate": 0.4282,
+          "overforecastRate": 0.4172,
+          "shortageWeightedError": 0.9731
+        },
+        {
+          "method": "WEIGHTED_MOVING_AVERAGE",
+          "kind": "baseline",
+          "count": 3552,
+          "mae": 0.6507,
+          "horizonWeightedMae": 0.6293,
+          "wape": 0.5316,
+          "bias": 0.0412,
+          "underforecastRate": 0.4403,
+          "overforecastRate": 0.4293,
+          "shortageWeightedError": 0.9554
+        },
+        {
+          "method": "PHASE_EQUIPMENT_AVERAGE",
+          "kind": "baseline",
+          "count": 3552,
+          "mae": 0.6698,
+          "horizonWeightedMae": 0.6698,
+          "wape": 0.5472,
+          "bias": 0.0477,
+          "underforecastRate": 0.3975,
+          "overforecastRate": 0.5462,
+          "shortageWeightedError": 0.9809
+        }
+      ],
+      "byHorizon": {
+        "week1": {
+          "count": 506,
+          "mae": 0.4881,
+          "horizonWeightedMae": 0.4881,
+          "wape": 0.4458,
+          "bias": 0.0296,
+          "underforecastRate": 0.2016,
+          "overforecastRate": 0.2292,
+          "shortageWeightedError": 0.7174
+        },
+        "week2": {
+          "count": 496,
+          "mae": 0.5343,
+          "horizonWeightedMae": 0.5343,
+          "wape": 0.4963,
+          "bias": 0.0585,
+          "underforecastRate": 0.2097,
+          "overforecastRate": 0.2601,
+          "shortageWeightedError": 0.7722
+        },
+        "week3": {
+          "count": 486,
+          "mae": 0.5412,
+          "horizonWeightedMae": 0.5412,
+          "wape": 0.5087,
+          "bias": 0.0679,
+          "underforecastRate": 0.2037,
+          "overforecastRate": 0.2654,
+          "shortageWeightedError": 0.7778
+        },
+        "week4": {
+          "count": 476,
+          "mae": 0.5483,
+          "horizonWeightedMae": 0.5483,
+          "wape": 0.5189,
+          "bias": 0.0987,
+          "underforecastRate": 0.1954,
+          "overforecastRate": 0.2668,
+          "shortageWeightedError": 0.7731
+        }
+      },
+      "byEquipmentType": {
+        "Bulldozer": {
+          "count": 304,
+          "mae": 0.5263,
+          "horizonWeightedMae": 0.5442,
+          "wape": 0.6751,
+          "bias": 0.0789,
+          "underforecastRate": 0.1941,
+          "overforecastRate": 0.2763,
+          "shortageWeightedError": 0.75
+        },
+        "Compactor": {
+          "count": 90,
+          "mae": 0.7444,
+          "horizonWeightedMae": 0.6565,
+          "wape": 0.5492,
+          "bias": 0.3222,
+          "underforecastRate": 0.1444,
+          "overforecastRate": 0.4778,
+          "shortageWeightedError": 0.9556
+        },
+        "Crane": {
+          "count": 376,
+          "mae": 0.492,
+          "horizonWeightedMae": 0.4479,
+          "wape": 0.7582,
+          "bias": 0.1729,
+          "underforecastRate": 0.1543,
+          "overforecastRate": 0.2846,
+          "shortageWeightedError": 0.6516
+        },
+        "Dump Truck": {
+          "count": 174,
+          "mae": 0.7184,
+          "horizonWeightedMae": 0.7364,
+          "wape": 0.4902,
+          "bias": 0.0172,
+          "underforecastRate": 0.2759,
+          "overforecastRate": 0.2586,
+          "shortageWeightedError": 1.069
+        },
+        "Excavator": {
+          "count": 510,
+          "mae": 0.4333,
+          "horizonWeightedMae": 0.4171,
+          "wape": 0.3605,
+          "bias": -0.0608,
+          "underforecastRate": 0.2196,
+          "overforecastRate": 0.1765,
+          "shortageWeightedError": 0.6804
+        },
+        "Motor Grader": {
+          "count": 90,
+          "mae": 0.3333,
+          "horizonWeightedMae": 0.313,
+          "wape": 0.1875,
+          "bias": 0.1778,
+          "underforecastRate": 0.0778,
+          "overforecastRate": 0.2444,
+          "shortageWeightedError": 0.4111
+        },
+        "Wheel Loader": {
+          "count": 420,
+          "mae": 0.5905,
+          "horizonWeightedMae": 0.6085,
+          "wape": 0.5199,
+          "bias": 0.0429,
+          "underforecastRate": 0.2405,
+          "overforecastRate": 0.2619,
+          "shortageWeightedError": 0.8643
+        }
+      },
+      "byProjectPhase": {
+        "Clearing": {
+          "count": 10,
+          "mae": 0.1,
+          "horizonWeightedMae": 0.1,
+          "wape": 0.05,
+          "bias": -0.1,
+          "underforecastRate": 0.1,
+          "overforecastRate": 0.0,
+          "shortageWeightedError": 0.2
+        },
+        "Demobilization": {
+          "count": 880,
+          "mae": 0.4886,
+          "horizonWeightedMae": 0.4827,
+          "wape": 0.6039,
+          "bias": 0.0818,
+          "underforecastRate": 0.192,
+          "overforecastRate": 0.267,
+          "shortageWeightedError": 0.692
+        },
+        "Earthwork": {
+          "count": 180,
+          "mae": 0.5778,
+          "horizonWeightedMae": 0.5933,
+          "wape": 0.2921,
+          "bias": -0.1556,
+          "underforecastRate": 0.2556,
+          "overforecastRate": 0.1556,
+          "shortageWeightedError": 0.9444
+        },
+        "Excavation": {
+          "count": 150,
+          "mae": 0.78,
+          "horizonWeightedMae": 0.7488,
+          "wape": 0.3953,
+          "bias": 0.0067,
+          "underforecastRate": 0.3067,
+          "overforecastRate": 0.24,
+          "shortageWeightedError": 1.1667
+        },
+        "Finishing": {
+          "count": 704,
+          "mae": 0.5057,
+          "horizonWeightedMae": 0.4847,
+          "wape": 0.5394,
+          "bias": 0.1023,
+          "underforecastRate": 0.1832,
+          "overforecastRate": 0.2685,
+          "shortageWeightedError": 0.7074
+        },
+        "Structural": {
+          "count": 40,
+          "mae": 0.7,
+          "horizonWeightedMae": 0.77,
+          "wape": 0.4375,
+          "bias": 0.2,
+          "underforecastRate": 0.175,
+          "overforecastRate": 0.325,
+          "shortageWeightedError": 0.95
+        }
+      },
+      "byRegion": {
+        "East": {
+          "count": 578,
+          "mae": 0.5433,
+          "horizonWeightedMae": 0.5267,
+          "wape": 0.5313,
+          "bias": 0.0381,
+          "underforecastRate": 0.2197,
+          "overforecastRate": 0.237,
+          "shortageWeightedError": 0.7958
+        },
+        "North": {
+          "count": 448,
+          "mae": 0.5201,
+          "horizonWeightedMae": 0.5116,
+          "wape": 0.7468,
+          "bias": 0.1406,
+          "underforecastRate": 0.1808,
+          "overforecastRate": 0.3147,
+          "shortageWeightedError": 0.7098
+        },
+        "South": {
+          "count": 584,
+          "mae": 0.536,
+          "horizonWeightedMae": 0.5331,
+          "wape": 0.4162,
+          "bias": 0.0291,
+          "underforecastRate": 0.2175,
+          "overforecastRate": 0.2329,
+          "shortageWeightedError": 0.7894
+        },
+        "West": {
+          "count": 354,
+          "mae": 0.4972,
+          "horizonWeightedMae": 0.4878,
+          "wape": 0.3885,
+          "bias": 0.0621,
+          "underforecastRate": 0.178,
+          "overforecastRate": 0.2458,
+          "shortageWeightedError": 0.7147
+        }
+      },
+      "rollingOrigins": [
+        {
+          "fold": 1,
+          "trainThrough": "2025-11-17",
+          "validateFrom": "2025-11-24",
+          "validateThrough": "2026-01-05",
+          "count": 2576,
+          "mae": 0.653,
+          "horizonWeightedMae": 0.6284,
+          "wape": 0.5147,
+          "bias": -0.038,
+          "underforecastRate": 0.2682,
+          "overforecastRate": 0.2438,
+          "shortageWeightedError": 0.9984
+        },
+        {
+          "fold": 2,
+          "trainThrough": "2026-01-12",
+          "validateFrom": "2026-01-19",
+          "validateThrough": "2026-03-02",
+          "count": 2432,
+          "mae": 0.6587,
+          "horizonWeightedMae": 0.6268,
+          "wape": 0.5161,
+          "bias": -0.0082,
+          "underforecastRate": 0.2578,
+          "overforecastRate": 0.2418,
+          "shortageWeightedError": 0.9922
+        },
+        {
+          "fold": 3,
+          "trainThrough": "2026-03-09",
+          "validateFrom": "2026-03-16",
+          "validateThrough": "2026-04-27",
+          "count": 1696,
+          "mae": 0.5784,
+          "horizonWeightedMae": 0.563,
+          "wape": 0.5812,
+          "bias": 0.1162,
+          "underforecastRate": 0.204,
+          "overforecastRate": 0.2877,
+          "shortageWeightedError": 0.8096
+        }
+      ]
+    },
+    "machineHours": {
+      "servingMethod": "GRADIENT_BOOSTING",
+      "selectionWinner": "GRADIENT_BOOSTING",
+      "selectionWinnerKind": "model",
+      "modelPromoted": true,
+      "promotionGate": {
+        "rule": "selection-window model must not lose to selected baseline on untouched holdout",
+        "candidateModel": {
+          "method": "GRADIENT_BOOSTING",
+          "count": 1964,
+          "mae": 18.2515,
+          "horizonWeightedMae": 18.0649,
+          "wape": 0.5954,
+          "bias": 3.5059,
+          "underforecastRate": 0.4089,
+          "overforecastRate": 0.5911,
+          "shortageWeightedError": 25.6242
+        },
+        "fallbackBaseline": {
+          "method": "WEIGHTED_MOVING_AVERAGE",
+          "count": 1964,
+          "mae": 19.0692,
+          "horizonWeightedMae": 18.757,
+          "wape": 0.6221,
+          "bias": 2.6527,
+          "underforecastRate": 0.4119,
+          "overforecastRate": 0.53,
+          "shortageWeightedError": 27.2775
+        },
+        "passed": true
+      },
+      "finalHoldout": {
+        "count": 1964,
+        "mae": 18.2515,
+        "horizonWeightedMae": 18.0649,
+        "wape": 0.5954,
+        "bias": 3.5059,
+        "underforecastRate": 0.4089,
+        "overforecastRate": 0.5911,
+        "shortageWeightedError": 25.6242
+      },
+      "interval": {
+        "calibrationQuantiles": [
+          0.1,
+          0.9
+        ],
+        "holdoutCoverage": 0.8462
+      },
+      "candidateModels": [
+        {
+          "method": "HIST_GRADIENT_BOOSTING",
+          "kind": "model",
+          "count": 3552,
+          "mae": 20.6652,
+          "horizonWeightedMae": 20.6205,
+          "wape": 0.5883,
+          "bias": 3.2754,
+          "underforecastRate": 0.4316,
+          "overforecastRate": 0.5684,
+          "shortageWeightedError": 29.3601
+        },
+        {
+          "method": "GRADIENT_BOOSTING",
+          "kind": "model",
+          "count": 3552,
+          "mae": 20.7468,
+          "horizonWeightedMae": 20.5879,
+          "wape": 0.5906,
+          "bias": 2.5535,
+          "underforecastRate": 0.4614,
+          "overforecastRate": 0.5386,
+          "shortageWeightedError": 29.8435
+        },
+        {
+          "method": "RANDOM_FOREST",
+          "kind": "model",
+          "count": 3552,
+          "mae": 20.8882,
+          "horizonWeightedMae": 20.7061,
+          "wape": 0.5946,
+          "bias": 3.4986,
+          "underforecastRate": 0.4082,
+          "overforecastRate": 0.5918,
+          "shortageWeightedError": 29.5829
+        }
+      ],
+      "baselines": [
+        {
+          "method": "LAST_OBSERVED",
+          "kind": "baseline",
+          "count": 3552,
+          "mae": 24.9019,
+          "horizonWeightedMae": 24.3181,
+          "wape": 0.7089,
+          "bias": 0.6191,
+          "underforecastRate": 0.4251,
+          "overforecastRate": 0.4327,
+          "shortageWeightedError": 37.0432
+        },
+        {
+          "method": "MOVING_AVERAGE_4",
+          "kind": "baseline",
+          "count": 3552,
+          "mae": 22.635,
+          "horizonWeightedMae": 22.1152,
+          "wape": 0.6443,
+          "bias": 0.9473,
+          "underforecastRate": 0.4662,
+          "overforecastRate": 0.487,
+          "shortageWeightedError": 33.4789
+        },
+        {
+          "method": "WEIGHTED_MOVING_AVERAGE",
+          "kind": "baseline",
+          "count": 3552,
+          "mae": 22.4169,
+          "horizonWeightedMae": 21.8833,
+          "wape": 0.6381,
+          "bias": 0.8848,
+          "underforecastRate": 0.4581,
+          "overforecastRate": 0.4952,
+          "shortageWeightedError": 33.183
+        },
+        {
+          "method": "PHASE_EQUIPMENT_AVERAGE",
+          "kind": "baseline",
+          "count": 3552,
+          "mae": 21.8837,
+          "horizonWeightedMae": 21.8837,
+          "wape": 0.6229,
+          "bias": 1.2118,
+          "underforecastRate": 0.4493,
+          "overforecastRate": 0.5383,
+          "shortageWeightedError": 32.2196
+        }
+      ],
+      "byHorizon": {
+        "week1": {
+          "count": 506,
+          "mae": 17.5789,
+          "horizonWeightedMae": 17.5789,
+          "wape": 0.5629,
+          "bias": 2.6959,
+          "underforecastRate": 0.4328,
+          "overforecastRate": 0.5672,
+          "shortageWeightedError": 25.0204
+        },
+        "week2": {
+          "count": 496,
+          "mae": 18.2029,
+          "horizonWeightedMae": 18.2029,
+          "wape": 0.592,
+          "bias": 3.3264,
+          "underforecastRate": 0.4012,
+          "overforecastRate": 0.5988,
+          "shortageWeightedError": 25.6411
+        },
+        "week3": {
+          "count": 486,
+          "mae": 18.547,
+          "horizonWeightedMae": 18.547,
+          "wape": 0.6096,
+          "bias": 3.7812,
+          "underforecastRate": 0.4033,
+          "overforecastRate": 0.5967,
+          "shortageWeightedError": 25.9299
+        },
+        "week4": {
+          "count": 476,
+          "mae": 18.7153,
+          "horizonWeightedMae": 18.7153,
+          "wape": 0.6201,
+          "bias": 4.2729,
+          "underforecastRate": 0.3971,
+          "overforecastRate": 0.6029,
+          "shortageWeightedError": 25.9364
+        }
+      },
+      "byEquipmentType": {
+        "Bulldozer": {
+          "count": 304,
+          "mae": 19.1541,
+          "horizonWeightedMae": 19.3985,
+          "wape": 0.8059,
+          "bias": 5.2295,
+          "underforecastRate": 0.3947,
+          "overforecastRate": 0.6053,
+          "shortageWeightedError": 26.1163
+        },
+        "Compactor": {
+          "count": 90,
+          "mae": 18.5721,
+          "horizonWeightedMae": 17.4975,
+          "wape": 0.4587,
+          "bias": 0.354,
+          "underforecastRate": 0.4889,
+          "overforecastRate": 0.5111,
+          "shortageWeightedError": 27.6812
+        },
+        "Crane": {
+          "count": 376,
+          "mae": 15.0863,
+          "horizonWeightedMae": 14.3961,
+          "wape": 0.954,
+          "bias": 6.4447,
+          "underforecastRate": 0.2553,
+          "overforecastRate": 0.7447,
+          "shortageWeightedError": 19.4071
+        },
+        "Dump Truck": {
+          "count": 174,
+          "mae": 22.1895,
+          "horizonWeightedMae": 22.1969,
+          "wape": 0.4309,
+          "bias": -1.2162,
+          "underforecastRate": 0.5345,
+          "overforecastRate": 0.4655,
+          "shortageWeightedError": 33.8924
+        },
+        "Excavator": {
+          "count": 510,
+          "mae": 19.8168,
+          "horizonWeightedMae": 19.6869,
+          "wape": 0.5894,
+          "bias": 2.7438,
+          "underforecastRate": 0.4255,
+          "overforecastRate": 0.5745,
+          "shortageWeightedError": 28.3533
+        },
+        "Motor Grader": {
+          "count": 90,
+          "mae": 12.317,
+          "horizonWeightedMae": 12.2855,
+          "wape": 0.2692,
+          "bias": -4.2133,
+          "underforecastRate": 0.6111,
+          "overforecastRate": 0.3889,
+          "shortageWeightedError": 20.5822
+        },
+        "Wheel Loader": {
+          "count": 420,
+          "mae": 18.1024,
+          "horizonWeightedMae": 18.0376,
+          "wape": 0.5775,
+          "bias": 4.8387,
+          "underforecastRate": 0.4238,
+          "overforecastRate": 0.5762,
+          "shortageWeightedError": 24.7343
+        }
+      },
+      "byProjectPhase": {
+        "Clearing": {
+          "count": 10,
+          "mae": 13.4762,
+          "horizonWeightedMae": 13.4762,
+          "wape": 0.2448,
+          "bias": -7.3856,
+          "underforecastRate": 0.6,
+          "overforecastRate": 0.4,
+          "shortageWeightedError": 23.9071
+        },
+        "Demobilization": {
+          "count": 880,
+          "mae": 15.6271,
+          "horizonWeightedMae": 15.5065,
+          "wape": 0.686,
+          "bias": 5.3681,
+          "underforecastRate": 0.3705,
+          "overforecastRate": 0.6295,
+          "shortageWeightedError": 20.7565
+        },
+        "Earthwork": {
+          "count": 180,
+          "mae": 22.1785,
+          "horizonWeightedMae": 22.1803,
+          "wape": 0.4146,
+          "bias": -7.7946,
+          "underforecastRate": 0.65,
+          "overforecastRate": 0.35,
+          "shortageWeightedError": 37.1651
+        },
+        "Excavation": {
+          "count": 150,
+          "mae": 31.9793,
+          "horizonWeightedMae": 31.2468,
+          "wape": 0.5218,
+          "bias": -3.8508,
+          "underforecastRate": 0.4733,
+          "overforecastRate": 0.5267,
+          "shortageWeightedError": 49.8944
+        },
+        "Finishing": {
+          "count": 704,
+          "mae": 17.574,
+          "horizonWeightedMae": 17.149,
+          "wape": 0.657,
+          "bias": 6.1608,
+          "underforecastRate": 0.3764,
+          "overforecastRate": 0.6236,
+          "shortageWeightedError": 23.2806
+        },
+        "Structural": {
+          "count": 40,
+          "mae": 19.9539,
+          "horizonWeightedMae": 19.7379,
+          "wape": 0.4082,
+          "bias": -3.0257,
+          "underforecastRate": 0.45,
+          "overforecastRate": 0.55,
+          "shortageWeightedError": 31.4437
+        }
+      },
+      "byRegion": {
+        "East": {
+          "count": 578,
+          "mae": 20.4423,
+          "horizonWeightedMae": 20.2351,
+          "wape": 0.701,
+          "bias": 5.907,
+          "underforecastRate": 0.3685,
+          "overforecastRate": 0.6315,
+          "shortageWeightedError": 27.7099
+        },
+        "North": {
+          "count": 448,
+          "mae": 16.7321,
+          "horizonWeightedMae": 16.4633,
+          "wape": 0.8623,
+          "bias": 7.8956,
+          "underforecastRate": 0.2812,
+          "overforecastRate": 0.7188,
+          "shortageWeightedError": 21.1504
+        },
+        "South": {
+          "count": 584,
+          "mae": 18.4695,
+          "horizonWeightedMae": 18.3034,
+          "wape": 0.4966,
+          "bias": 1.1364,
+          "underforecastRate": 0.4589,
+          "overforecastRate": 0.5411,
+          "shortageWeightedError": 27.136
+        },
+        "West": {
+          "count": 354,
+          "mae": 16.2375,
+          "horizonWeightedMae": 16.1451,
+          "wape": 0.4443,
+          "bias": -2.0607,
+          "underforecastRate": 0.5537,
+          "overforecastRate": 0.4463,
+          "shortageWeightedError": 25.3866
+        }
+      },
+      "rollingOrigins": [
+        {
+          "fold": 1,
+          "trainThrough": "2025-11-17",
+          "validateFrom": "2025-11-24",
+          "validateThrough": "2026-01-05",
+          "count": 2576,
+          "mae": 19.8744,
+          "horizonWeightedMae": 19.759,
+          "wape": 0.5457,
+          "bias": -0.0936,
+          "underforecastRate": 0.5054,
+          "overforecastRate": 0.4946,
+          "shortageWeightedError": 29.8583
+        },
+        {
+          "fold": 2,
+          "trainThrough": "2026-01-12",
+          "validateFrom": "2026-01-19",
+          "validateThrough": "2026-03-02",
+          "count": 2432,
+          "mae": 21.2496,
+          "horizonWeightedMae": 21.0492,
+          "wape": 0.5813,
+          "bias": 1.3404,
+          "underforecastRate": 0.4823,
+          "overforecastRate": 0.5177,
+          "shortageWeightedError": 31.2041
+        },
+        {
+          "fold": 3,
+          "trainThrough": "2026-03-09",
+          "validateFrom": "2026-03-16",
+          "validateThrough": "2026-04-27",
+          "count": 1696,
+          "mae": 18.3012,
+          "horizonWeightedMae": 18.0909,
+          "wape": 0.6541,
+          "bias": 5.6094,
+          "underforecastRate": 0.4098,
+          "overforecastRate": 0.5902,
+          "shortageWeightedError": 24.6471
+        }
+      ]
+    },
+    "coldStart": {
+      "strategy": "project_holdout_cohort_fallback",
+      "heldOutProjectIds": [
+        1,
+        101,
+        106,
+        111,
+        116,
+        121
+      ],
+      "rows": 1064,
+      "units": {
+        "count": 1064,
+        "mae": 0.5575,
+        "horizonWeightedMae": 0.5575,
+        "wape": 0.4515,
+        "bias": 0.007,
+        "underforecastRate": 0.4643,
+        "overforecastRate": 0.4953,
+        "shortageWeightedError": 0.8328
+      },
+      "machineHours": {
+        "count": 1064,
+        "mae": 18.8162,
+        "horizonWeightedMae": 18.8162,
+        "wape": 0.5204,
+        "bias": -0.0677,
+        "underforecastRate": 0.4793,
+        "overforecastRate": 0.5103,
+        "shortageWeightedError": 28.2581
+      },
+      "fallbackCounts": {
+        "project_type_phase_equipment": 752,
+        "project_type_size_phase_equipment_region": 312
+      }
+    },
+    "warning": "All reported metrics are deterministic synthetic engineering results, not evidence of real customer-demand accuracy.",
+    "productionGate": "Shadow backtesting on real requested demand is required before production promotion."
+  },
+  "modelPath": "C:\\Projects\\prometheus\\Backend\\artifacts\\demand_forecasting\\demand_model.joblib",
+  "createdAt": "2026-07-30T18:05:54.290251+00:00"
+}

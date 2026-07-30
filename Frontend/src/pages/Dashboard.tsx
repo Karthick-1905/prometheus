@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
+import Link from '../components/AppLink';
 
 // ─── Types ────────────────────────────────────────────────
 interface AnomalyAlert {
@@ -353,6 +353,12 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="header-right">
+          <Link to="/demand" className="nav-link-btn">
+            Demand plan
+          </Link>
+          <Link to="/dealer/demand" className="nav-link-btn">
+            Dealer view
+          </Link>
           <Link to="/ml-lab" className="nav-link-btn">
             🌲 ML Lab
           </Link>

@@ -19,6 +19,21 @@ from app.models.enums import (
     RentalContractStatus,
     UserRole,
 )
+from app.models.forecasting import (
+    DemandFulfillment,
+    DemandRequest,
+    EquipmentAvailability,
+    ForecastOverride,
+    ForecastRecord,
+    ForecastRun,
+    HistoricalWeeklyDemand,
+    ModelVersion,
+    PackageCatalog,
+    PackageRecommendation,
+    Project,
+    RecommendationFeedback,
+    RegionalPositioningRecommendation,
+)
 
 __all__ = [
     "AnomalyAlert",
@@ -38,4 +53,17 @@ __all__ = [
     "ProjectSiteStatus",
     "RentalContractStatus",
     "UserRole",
+    "Project",
+    "DemandRequest",
+    "DemandFulfillment",
+    "HistoricalWeeklyDemand",
+    "EquipmentAvailability",
+    "PackageCatalog",
+    "ModelVersion",
+    "ForecastRun",
+    "ForecastRecord",
+    "PackageRecommendation",
+    "ForecastOverride",
+    "RecommendationFeedback",
+    "RegionalPositioningRecommendation",
 ]
