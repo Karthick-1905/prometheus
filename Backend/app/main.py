@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
     alerts,
+    analytics,
     auth,
     contracts,
     dealers,
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(sites.router)
     app.include_router(dealers.router)
     app.include_router(live.router)
+    app.include_router(analytics.router)
     return app
 
 
