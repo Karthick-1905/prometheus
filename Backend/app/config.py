@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     demand_synthetic_seed: int = 20260730
     demand_model_dir: str = str(ARTIFACTS_DIR / "demand_forecasting")
 
+    # Redis — pub/sub bus between ingestion and anomaly detection
+    # docker-compose maps container :6379 → host :6380
+    redis_url: str = "redis://localhost:6380/0"
+    redis_telemetry_channel: str = "telemetry:events"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
