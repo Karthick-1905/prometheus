@@ -29,3 +29,5 @@ node_modules/
 __pycache__/
 *.pyc
 .venv/
+Backend/artifacts/training-data.csv
+Backend/pipeline/telemetry.csv
