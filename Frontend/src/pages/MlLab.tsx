@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -242,7 +242,7 @@ export default function MlLabPage() {
 
   return (
     <div style={{ backgroundColor: '#fff8f0', color: '#1f1b10' }} className="min-h-screen flex overflow-hidden font-sans">
-      
+
       {/* ── Side Navigation Shell ── */}
       <aside style={{ backgroundColor: '#fdf3e1', borderColor: '#d1c5ab' }} className="h-screen w-64 fixed left-0 top-0 border-r flex flex-col py-6 px-4 gap-2 z-40">
         <div className="mb-6 px-2">
@@ -282,18 +282,14 @@ export default function MlLabPage() {
             <p style={{ color: '#4e4632' }} className="text-[10px] font-semibold uppercase">Fleet Director</p>
           </div>
         </div>
-      </aside>
-
-      {/* ── Main Canvas ── */}
-      <main className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
-        
-        {/* Top Header */}
-        <header style={{ backgroundColor: '#fff8f0', borderColor: '#d1c5ab' }} className="flex justify-between items-center px-8 w-full h-16 border-b sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            <h2 style={{ color: '#745b00' }} className="text-xl font-bold tracking-tight flex items-center gap-2">
-              <span className="material-symbols-outlined text-2xl">science</span>
-              Isolation Forest ML Model Lab
-            </h2>
+        <div className="header-right">
+          <div className={`live-badge ${health?.reachable && health?.model_loaded ? '' : 'offline'}`}>
+            <div className="live-dot" />
+            {health?.reachable
+              ? health.model_loaded
+                ? 'Model ready'
+                : 'Server up · no model'
+              : 'ML offline'}
           </div>
 
           <div className="flex items-center gap-4">
@@ -322,7 +318,7 @@ export default function MlLabPage() {
 
         {/* Content Workspace */}
         <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 custom-scrollbar">
-          
+
           {/* Model Status Metrics Bar */}
           <div className="grid grid-cols-4 gap-6">
             <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="border rounded-xl p-4 shadow-xs flex items-center gap-4">
@@ -368,7 +364,7 @@ export default function MlLabPage() {
 
           {/* Form & Score Results Layout */}
           <div className="grid grid-cols-12 gap-6">
-            
+
             {/* 6-Feature Form */}
             <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="col-span-7 border rounded-xl p-6 shadow-xs flex flex-col gap-4">
               <div>
@@ -505,7 +501,7 @@ export default function MlLabPage() {
 
             {/* Score Output & Metadata */}
             <div className="col-span-5 flex flex-col gap-6">
-              
+
               {/* Score Gauge Result */}
               <div style={{ backgroundColor: '#ffffff', borderColor: '#d1c5ab' }} className="border rounded-xl p-6 shadow-xs flex flex-col gap-4">
                 <h3 className="text-base font-bold flex items-center gap-2">
