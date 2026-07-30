@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { useRole } from '../../context/RoleContext';
 import AppHeader from './AppHeader';
 import AppSidebar from './AppSidebar';
@@ -9,14 +9,12 @@ export default function RoleLayout() {
 
   return (
     <div className="flex w-full min-h-screen bg-surface text-on-surface">
-      {/* Desktop sidebar — hide on small screens for operator, show hamburger-less compact top nav via CSS */}
-      <div className={`${isOperator ? 'hidden md:block' : 'hidden md:block'}`}>
+      <div className="hidden md:block">
         <AppSidebar />
       </div>
 
-      <div className={`flex-1 flex flex-col min-h-screen ${isOperator ? 'md:ml-64' : 'md:ml-64'}`}>
+      <div className="flex-1 flex flex-col min-h-screen md:ml-64">
         <AppHeader />
-        {/* Mobile bottom nav for operator */}
         {isOperator && (
           <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-container-lowest border-t border-outline-variant flex justify-around py-2 px-1">
             {[
@@ -25,14 +23,18 @@ export default function RoleLayout() {
               { to: '/operator/assignment', icon: 'handyman', label: 'Job' },
               { to: '/operator/history', icon: 'history', label: 'History' },
             ].map((item) => (
-              <a
+              <NavLink
                 key={item.to}
-                href={item.to}
-                className="flex flex-col items-center gap-0.5 text-[10px] font-bold uppercase text-on-surface-variant px-2"
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-0.5 text-[10px] font-bold uppercase px-2 ${
+                    isActive ? 'text-primary' : 'text-on-surface-variant'
+                  }`
+                }
               >
                 <span className="material-symbols-outlined text-xl">{item.icon}</span>
                 {item.label}
-              </a>
+              </NavLink>
             ))}
           </nav>
         )}

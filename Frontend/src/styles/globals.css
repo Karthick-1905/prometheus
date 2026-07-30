@@ -75,3 +75,46 @@ html, body {
 .font-title-md { font-family: 'Inter', sans-serif; font-weight: 700; }
 .font-label-md { font-family: 'Inter', sans-serif; font-weight: 600; }
 .font-body-md { font-family: 'Inter', sans-serif; font-weight: 400; }
+
+/* Shared button helpers for role pages */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #ffcd11;
+  color: #6f5800;
+  border: 1px solid #745b00;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.btn-primary:hover { filter: brightness(0.97); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #f7eddb;
+  color: #4e4632;
+  border: 1px solid #d1c5ab;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: #f1e7d5; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation: fadeInUp 0.25s ease both; }
