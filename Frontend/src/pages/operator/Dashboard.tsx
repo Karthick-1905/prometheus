@@ -1,38 +1,21 @@
-import PageHeader from '../../components/ui/PageHeader';
-import StatCard from '../../components/ui/StatCard';
-import Panel from '../../components/ui/Panel';
 import { Link } from 'react-router-dom';
-import { operatorProfile } from '../../mock/data';
+import { siteApi } from '../../api/platform';
+import PageHeader from '../../components/ui/PageHeader';
+import Panel from '../../components/ui/Panel';
+import StatCard from '../../components/ui/StatCard';
+import { FeedbackBanner, PageSkeleton } from '../../components/ui/Feedback';
+import { useAsync } from '../../hooks/useAsync';
 
 export default function OperatorDashboard() {
-  const p = operatorProfile;
+  const resource = useAsync(async () => {
+    const [sites, assignments] = await Promise.all([siteApi.sites(), siteApi.activeCheckouts()]);
+    return { sites: sites.data, assignments: assignments.data };
+  }, []);
   return (
-    <div className="max-w-lg mx-auto md:max-w-none">
-      <PageHeader title="Operator Home" subtitle={`Welcome, ${p.name}`} />
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <StatCard label="Assigned Equipment" value={p.assignedEquipment} icon="precision_manufacturing" />
-        <StatCard label="Current Site" value={p.site.split(' ')[0]} icon="domain" hint={p.site} />
-        <StatCard label="Shift" value="Day" icon="schedule" hint={p.shift} />
-        <StatCard label="Working Hours" value={`${p.workingHours} h`} icon="timer" accent="success" />
-      </div>
-      <Panel title="Quick actions">
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            to="/operator/scan"
-            className="flex flex-col items-center gap-2 p-5 rounded-xl bg-primary-container text-on-primary-container font-bold border border-primary"
-          >
-            <span className="material-symbols-outlined text-3xl">qr_code_scanner</span>
-            Scan QR
-          </Link>
-          <Link
-            to="/operator/assignment"
-            className="flex flex-col items-center gap-2 p-5 rounded-xl bg-surface-container border border-outline-variant font-bold text-on-surface"
-          >
-            <span className="material-symbols-outlined text-3xl text-primary">handyman</span>
-            My assignment
-          </Link>
-        </div>
-      </Panel>
+    <div className="max-w-4xl mx-auto">
+      <PageHeader title="Operator Home" subtitle="Live site and equipment assignment status" />
+      {resource.error && <FeedbackBanner tone="error">{resource.error}</FeedbackBanner>}
+      {resource.loading ? <PageSkeleton rows={6} /> : <><div className="grid grid-cols-2 gap-3 mb-6"><StatCard label="Active assignments" value={resource.data?.assignments.length ?? 0} icon="precision_manufacturing" /><StatCard label="Available sites" value={resource.data?.sites.length ?? 0} icon="domain" /></div><Panel title="Quick actions"><div className="quick-actions"><Link to="/operator/scan"><span className="material-symbols-outlined">qr_code_scanner</span><strong>Scan equipment</strong><small>Verify QR or RFID and record movement</small></Link><Link to="/operator/assignment"><span className="material-symbols-outlined">handyman</span><strong>Current assignments</strong><small>Review active equipment checkouts</small></Link></div></Panel></>}
     </div>
   );
 }

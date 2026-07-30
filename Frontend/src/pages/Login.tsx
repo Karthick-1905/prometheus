@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FeedbackBanner } from '../components/ui/Feedback';
 import { useRole } from '../context/RoleContext';
 import {
   ROLE_DESCRIPTIONS,
@@ -11,92 +12,96 @@ import {
 } from '../types/roles';
 
 export default function LoginPage() {
-  const [selected, setSelected] = useState<Role | null>(null);
-  const { setRole } = useRole();
+  const [selected, setSelected] = useState<Role>('fleet_manager');
+  const [email, setEmail] = useState('demo@cat-rental.local');
+  const [password, setPassword] = useState('demo');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { login } = useRole();
   const navigate = useNavigate();
 
-  const continueAs = () => {
-    if (!selected) return;
-    setRole(selected);
-    navigate(ROLE_HOME[selected], { replace: true });
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await login({ email, password, role: selected });
+      navigate(ROLE_HOME[selected], { replace: true });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Sign in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center latent-grid px-4 py-10">
-      <div className="w-full max-w-lg bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-lg p-6 sm:p-8">
-        <div className="flex items-center gap-3 mb-2">
-          <span
-            className="material-symbols-outlined text-4xl text-primary"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            construction
-          </span>
-          <div>
-            <h1 className="font-headline-lg text-2xl font-black text-on-surface">CAT Smart Rental</h1>
-            <p className="text-xs uppercase tracking-widest text-on-surface-variant font-bold">
-              Role-based access (demo)
-            </p>
-          </div>
+    <main className="login-shell">
+      <section className="login-intro">
+        <div className="brand-lockup">
+          <span className="material-symbols-outlined" aria-hidden="true">construction</span>
+          <div><strong>CAT Smart Rental</strong><span>Connected operations</span></div>
         </div>
-
-        <p className="text-sm text-on-surface-variant mt-3 mb-6">
-          Authentication is mocked. Select a role to explore the corresponding workspace. Real JWT
-          auth will plug in later.
+        <h1>One live view of every machine, commitment, and decision.</h1>
+        <p>
+          Sign in to the role-specific workspace backed by live fleet, dealer, site,
+          anomaly, and demand services.
         </p>
+        <ul>
+          <li><span className="material-symbols-outlined">check_circle</span>Scoped backend access</li>
+          <li><span className="material-symbols-outlined">check_circle</span>Live operational status</li>
+          <li><span className="material-symbols-outlined">check_circle</span>Auditable human decisions</li>
+        </ul>
+      </section>
 
-        <h2 className="font-title-md text-sm font-bold uppercase tracking-wide text-on-surface mb-3">
-          Select Role
-        </h2>
-
-        <div className="flex flex-col gap-2 mb-6" role="radiogroup" aria-label="Select role">
-          {ROLES.map((role) => {
-            const active = selected === role;
-            return (
-              <button
-                key={role}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setSelected(role)}
-                className={`text-left flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer ${
-                  active
-                    ? 'border-primary bg-primary-container/30 shadow-sm'
-                    : 'border-outline-variant bg-surface hover:bg-surface-container'
-                }`}
-              >
-                <span
-                  className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    active ? 'border-primary' : 'border-outline'
-                  }`}
-                >
-                  {active && <span className="w-2.5 h-2.5 rounded-full bg-primary" />}
-                </span>
-                <span
-                  className="material-symbols-outlined text-2xl text-primary shrink-0"
-                  style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
-                >
-                  {ROLE_ICONS[role]}
-                </span>
-                <span>
-                  <span className="block font-bold text-sm text-on-surface">{ROLE_LABELS[role]}</span>
-                  <span className="block text-xs text-on-surface-variant mt-0.5">
-                    {ROLE_DESCRIPTIONS[role]}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
+      <form className="login-panel" onSubmit={submit}>
+        <div>
+          <h2>Sign in</h2>
+          <p>The demo backend issues a real JWT for the selected workspace.</p>
         </div>
-
-        <button
-          type="button"
-          disabled={!selected}
-          onClick={continueAs}
-          className="w-full py-3.5 rounded-xl bg-primary-container text-on-primary-container font-black text-sm uppercase tracking-wide border border-primary disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 transition cursor-pointer"
-        >
-          Continue
+        {error && <FeedbackBanner tone="error">{error}</FeedbackBanner>}
+        <label className="field">
+          <span>Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
+        </label>
+        <label className="field">
+          <span>Password</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </label>
+        <fieldset className="role-picker">
+          <legend>Workspace</legend>
+          {ROLES.map((role) => (
+            <label key={role} className={selected === role ? 'is-selected' : ''}>
+              <input
+                type="radio"
+                name="role"
+                value={role}
+                checked={selected === role}
+                onChange={() => setSelected(role)}
+              />
+              <span className="material-symbols-outlined" aria-hidden="true">{ROLE_ICONS[role]}</span>
+              <span><strong>{ROLE_LABELS[role]}</strong><small>{ROLE_DESCRIPTIONS[role]}</small></span>
+            </label>
+          ))}
+        </fieldset>
+        <button className="btn-primary login-submit" type="submit" disabled={loading}>
+          {loading ? 'Signing in…' : `Continue as ${ROLE_LABELS[selected]}`}
         </button>
-      </div>
-    </div>
+        <p className="login-note">
+          Demo authentication accepts any non-empty password. Production policy belongs in the identity provider.
+        </p>
+      </form>
+    </main>
   );
 }

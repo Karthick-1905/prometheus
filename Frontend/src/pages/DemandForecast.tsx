@@ -93,6 +93,7 @@ export default function DemandForecastPage() {
   const [preference, setPreference] = useState('BALANCED');
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -127,11 +128,14 @@ export default function DemandForecastPage() {
     Promise.all([
       demandApi.equipmentForecast(projectId, equipmentType),
       demandApi.packages(projectId, equipmentType, preference),
+      demandApi.project(projectId),
     ])
-      .then(([forecastResult, packageResult]) => {
+      .then(async ([forecastResult, packageResult]) => {
         setForecast(forecastResult);
         setRecommendation(packageResult.recommendation);
         const first = forecastResult.forecast[0];
+        const detail = await demandApi.explanation(first.forecastId);
+        setExplanation(detail.explanation);
         setOverrideUnits(first.predictedUnits);
         setOverrideHours(first.predictedMachineHours);
       })
@@ -212,9 +216,9 @@ export default function DemandForecastPage() {
           </div>
         </div>
         <nav className="demand-nav" aria-label="Primary navigation">
-          <Link to="/">Fleet</Link>
-          <Link to="/ml-lab">ML lab</Link>
-          <Link className="is-current" to="/demand">Customer forecast</Link>
+          <Link to="/fleet/dashboard">Fleet</Link>
+          <Link to="/admin/system">ML operations</Link>
+          <Link className="is-current" to="/fleet/demand">Customer forecast</Link>
           <Link to="/dealer/demand">Dealer view</Link>
         </nav>
       </header>
@@ -297,7 +301,7 @@ export default function DemandForecastPage() {
               <ForecastRange points={forecast.forecast} />
               <div className="forecast-explanation">
                 <strong>Why this forecast</strong>
-                <p>{forecast.forecast[0].explanation}</p>
+                <p>{explanation ?? forecast.forecast[0].explanation}</p>
                 <span>Method: {forecast.forecast[0].forecastMethod.replaceAll('_', ' ').toLowerCase()}</span>
               </div>
             </section>

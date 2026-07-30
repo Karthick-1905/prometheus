@@ -1,61 +1,38 @@
 import { useState } from 'react';
+import { fleetApi, siteApi } from '../../api/platform';
 import PageHeader from '../../components/ui/PageHeader';
 import Panel from '../../components/ui/Panel';
-import { operators, siteEquipment } from '../../mock/data';
+import StatusBadge from '../../components/ui/StatusBadge';
+import { EmptyState, FeedbackBanner, PageSkeleton } from '../../components/ui/Feedback';
+import { getErrorMessage, useAsync } from '../../hooks/useAsync';
 
 export default function SiteAssignment() {
-  const [msg, setMsg] = useState<string | null>(null);
-  const flash = (m: string) => {
-    setMsg(m);
-    setTimeout(() => setMsg(null), 2200);
+  const [form, setForm] = useState({ contractId: '', siteId: '' });
+  const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const resource = useAsync(async () => {
+    const [assignments, sites, unassigned] = await Promise.all([siteApi.assignments(), siteApi.sites(), fleetApi.unassigned()]);
+    return { assignments: assignments.data, sites: sites.data, unassigned: unassigned.data };
+  }, []);
+  const create = async (event: React.FormEvent) => {
+    event.preventDefault();
+    try {
+      await siteApi.createAssignment({ contractId: Number(form.contractId), siteId: Number(form.siteId) });
+      setMessage({ tone: 'success', text: 'Equipment assignment created and any previous active assignment closed.' });
+      setForm({ contractId: '', siteId: '' });
+      await resource.reload();
+    } catch (error) {
+      setMessage({ tone: 'error', text: getErrorMessage(error) });
+    }
   };
-
   return (
     <div>
-      <PageHeader title="Equipment Assignment" subtitle="Check-in / check-out / reassign (mock)" />
-      {msg && (
-        <div className="mb-4 px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-sm font-bold">
-          {msg}
-        </div>
-      )}
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {[
-          { l: 'Assign Equipment', i: 'person_add', m: 'Mock: Assign equipment flow' },
-          { l: 'Check-In', i: 'login', m: 'Mock: Equipment checked in' },
-          { l: 'Check-Out', i: 'logout', m: 'Mock: Equipment checked out' },
-          { l: 'Reassign', i: 'swap_horiz', m: 'Mock: Reassignment completed' },
-        ].map((b) => (
-          <button
-            key={b.l}
-            type="button"
-            onClick={() => flash(b.m)}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border border-outline-variant bg-surface-container-lowest hover:bg-primary-container/30 transition cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-3xl text-primary">{b.i}</span>
-            <span className="text-xs font-black uppercase">{b.l}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <Panel title="Available operators">
-          {operators.map((o) => (
-            <div key={o.name} className="flex justify-between text-sm py-2 border-b border-outline-variant/30 last:border-0">
-              <span className="font-semibold">{o.name}</span>
-              <span className="text-xs text-on-surface-variant">{o.status}</span>
-            </div>
-          ))}
-        </Panel>
-        <Panel title="Site equipment">
-          {siteEquipment.map((e) => (
-            <div key={e.id} className="flex justify-between text-sm py-2 border-b border-outline-variant/30 last:border-0">
-              <span className="font-mono font-bold text-xs">{e.id}</span>
-              <span className="text-xs">{e.status}</span>
-            </div>
-          ))}
-        </Panel>
-      </div>
+      <PageHeader title="Equipment Assignment" subtitle="Assign active rental contracts to a company site" />
+      {message && <FeedbackBanner tone={message.tone} onDismiss={() => setMessage(null)}>{message.text}</FeedbackBanner>}
+      {resource.error && <FeedbackBanner tone="error">{resource.error}</FeedbackBanner>}
+      {resource.loading ? <PageSkeleton rows={7} /> : <div className="grid lg:grid-cols-[1fr_340px] gap-4">
+        <Panel title="Active assignments">{!resource.data?.assignments.length ? <EmptyState title="No active assignments" message="Select an unassigned contract and target site to begin." /> : <div className="data-list">{resource.data.assignments.map((item) => <div className="data-list-row compact" key={item.assignmentId}><div><strong>{item.equipmentName ?? `Equipment ${item.equipmentId}`}</strong><span>{item.siteName} · Contract #{item.contractId}</span></div><StatusBadge status={item.status ?? 'UNKNOWN'} /></div>)}</div>}</Panel>
+        <Panel title="Assign equipment"><form className="stack-form" onSubmit={create}><label className="field"><span>Unassigned rental</span><select value={form.contractId} onChange={(event) => setForm((current) => ({ ...current, contractId: event.target.value }))} required><option value="">Select contract</option>{resource.data?.unassigned.map((machine) => <option key={machine.contractId} value={machine.contractId}>{machine.equipmentName} · Contract #{machine.contractId}</option>)}</select></label><label className="field"><span>Target site</span><select value={form.siteId} onChange={(event) => setForm((current) => ({ ...current, siteId: event.target.value }))} required><option value="">Select site</option>{resource.data?.sites.map((site) => <option key={site.siteId} value={site.siteId}>{site.siteName}</option>)}</select></label><button className="btn-primary" type="submit">Create assignment</button></form></Panel>
+      </div>}
     </div>
   );
 }

@@ -1,30 +1,196 @@
-/** API client — Vite proxies /api → Backend :8000 in dev */
+/** Shared HTTP/SSE client for the FastAPI backend. */
 
-const BASE = import.meta.env.VITE_API_URL ?? '';
+const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+const SESSION_KEY = 'cat_rental_session';
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-  });
-  return res.json() as Promise<T>;
+export interface ApiSession {
+  accessToken?: string;
+  actorId: string;
+  role: string;
+  companyId?: number | null;
+  dealerId?: number | null;
+  siteId?: number | null;
 }
 
-export const api = {
-  health: () => request<any>('/api/ml/health'),
-  predict: (body: Record<string, unknown>) =>
-    request<any>('/api/ml/predict', { method: 'POST', body: JSON.stringify(body) }),
-  alerts: (resolved = false, limit = 100) =>
-    request<any>(`/api/alerts?resolved=${resolved}&limit=${limit}`),
-  resolveAlert: (alertId: number) =>
-    request<any>('/api/alerts', {
-      method: 'PATCH',
-      body: JSON.stringify({ alertId }),
-    }),
-  telemetry: () => request<any>('/api/telemetry'),
-  simulate: (body: Record<string, unknown>) =>
-    request<any>('/api/simulate', { method: 'POST', body: JSON.stringify(body) }),
-};
+export class ApiError extends Error {
+  status: number;
+  details: unknown;
+
+  constructor(message: string, status: number, details?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.details = details;
+  }
+}
+
+export function readApiSession(): ApiSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as ApiSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeApiSession(session: ApiSession | null) {
+  if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  else localStorage.removeItem(SESSION_KEY);
+}
+
+function authHeaders(): Record<string, string> {
+  const session = readApiSession();
+  if (!session) return {};
+  if (session.accessToken) return { Authorization: `Bearer ${session.accessToken}` };
+  return {
+    'X-Actor-Id': session.actorId,
+    'X-User-Role': session.role,
+    ...(session.companyId != null ? { 'X-Company-Id': String(session.companyId) } : {}),
+    ...(session.dealerId != null ? { 'X-Dealer-Id': String(session.dealerId) } : {}),
+    ...(session.siteId != null ? { 'X-Site-Id': String(session.siteId) } : {}),
+  };
+}
+
+async function parseResponse(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    if (!response.ok) {
+      return {
+        detail:
+          response.status >= 500
+            ? 'The backend could not complete this request. Check its database and service dependencies.'
+            : text,
+      };
+    }
+    throw new ApiError(
+      `The server returned an unreadable response (${response.status}).`,
+      response.status,
+      text,
+    );
+  }
+}
+
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${BASE}${path}`, {
+      cache: init.cache ?? 'no-store',
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...authHeaders(),
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch (error) {
+    throw new ApiError(
+      'Cannot reach the backend API. Start FastAPI on port 8000 and try again.',
+      0,
+      error,
+    );
+  }
+  const payload = (await parseResponse(response)) as Record<string, unknown> | null;
+  const backendMessage =
+    typeof payload?.detail === 'string'
+      ? payload.detail
+      : typeof payload?.error === 'string'
+        ? payload.error
+        : typeof payload?.message === 'string'
+          ? payload.message
+          : null;
+  if (!response.ok || payload?.success === false) {
+    throw new ApiError(
+      backendMessage ?? `Backend request failed with status ${response.status}.`,
+      response.status,
+      payload,
+    );
+  }
+  return payload as T;
+}
+
+export function query(
+  path: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  const values = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') values.set(key, String(value));
+  });
+  const suffix = values.toString();
+  return suffix ? `${path}?${suffix}` : path;
+}
+
+export function idempotencyKey(prefix: string) {
+  const suffix =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${suffix}`;
+}
+
+export function backendRootPath() {
+  return BASE ? '/' : '/backend-root';
+}
+
+export interface StreamEvent<T = unknown> {
+  id?: string;
+  event: string;
+  data: T;
+}
+
+/** Read a finite backend SSE stream while preserving bearer/header authentication. */
+export async function readEventStream(
+  path: string,
+  onEvent: (event: StreamEvent) => void,
+  signal?: AbortSignal,
+) {
+  const response = await fetch(`${BASE}${path}`, {
+    headers: { Accept: 'text/event-stream', ...authHeaders() },
+    signal,
+  });
+  if (!response.ok || !response.body) {
+    const payload = await parseResponse(response);
+    throw new ApiError(
+      (payload as { detail?: string } | null)?.detail ??
+        `Live stream failed with status ${response.status}.`,
+      response.status,
+      payload,
+    );
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+    let boundary = buffer.indexOf('\n\n');
+    while (boundary >= 0) {
+      const block = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      const parsed: { id?: string; event: string; data?: unknown } = { event: 'message' };
+      for (const line of block.split('\n')) {
+        const split = line.indexOf(':');
+        if (split < 0) continue;
+        const field = line.slice(0, split);
+        const raw = line.slice(split + 1).trimStart();
+        if (field === 'id') parsed.id = raw;
+        if (field === 'event') parsed.event = raw;
+        if (field === 'data') {
+          try {
+            parsed.data = JSON.parse(raw);
+          } catch {
+            parsed.data = raw;
+          }
+        }
+      }
+      onEvent({ id: parsed.id, event: parsed.event, data: parsed.data });
+      boundary = buffer.indexOf('\n\n');
+    }
+  }
+}

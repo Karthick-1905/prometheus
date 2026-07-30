@@ -189,10 +189,20 @@ function idempotencyKey(prefix: string): string {
 export const demandApi = {
   projects: () =>
     request<{ projects: ProjectSummary[]; warning: string }>('/api/demand/projects'),
+  project: (projectId: number) =>
+    request<Record<string, unknown>>(`/api/demand/projects/${projectId}`),
   equipmentForecast: (projectId: number, equipmentType: string) =>
     request<ForecastResponse>(
       `/api/demand/projects/${projectId}/equipment/${encodeURIComponent(equipmentType)}`,
     ),
+  explanation: (forecastId: number) =>
+    request<{
+      success: boolean;
+      forecastId: number;
+      facts: Record<string, unknown>;
+      explanation: string;
+      warning?: string;
+    }>(`/api/demand/forecasts/${forecastId}/explanation`),
   packages: (projectId: number, equipmentType: string, preference: string) =>
     request<{ recommendation: Recommendation; warning: string }>(
       `/api/demand/projects/${projectId}/packages?equipmentType=${encodeURIComponent(
