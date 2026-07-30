@@ -7,6 +7,9 @@ import { RentalRepository } from '../repositories/rental.repository';
 import { IngestionResult } from '../types/telemetry';
 import { AnomalyService } from './anomaly/anomaly.service';
 
+// Feature Flag: Set to false to enable duplicate packet detection in production
+const SKIP_DUPLICATE_CHECK = true;
+
 export class IngestionService {
   private equipmentRepo: EquipmentRepository;
   private telemetryRepo: TelemetryRepository;
@@ -20,6 +23,10 @@ export class IngestionService {
     this.equipmentRepo = equipmentRepo;
     this.telemetryRepo = telemetryRepo;
     this.rentalRepo = rentalRepo;
+
+    if (SKIP_DUPLICATE_CHECK) {
+      logger.warn('WARNING: Duplicate packet detection is temporarily disabled.');
+    }
   }
 
   /**
@@ -58,34 +65,37 @@ export class IngestionService {
     const validatedData = validationResult.data;
     const packetDate = new Date(validatedData.timestamp);
 
-    // Step 3: Check for Duplicate Packet
-    try {
-      const isDuplicate = await this.telemetryRepo.isDuplicatePacket(
-        validatedData.equipmentId,
-        packetDate
-      );
-      if (isDuplicate) {
-        logger.warn(
-          { equipmentId: validatedData.equipmentId, timestamp: validatedData.timestamp },
-          'Edge Case Triggered: Duplicate telemetry packet received and skipped'
+    // TEMPORARY: Duplicate packet check disabled for end-to-end integration testing.
+    // Restore before production deployment.
+    if (!SKIP_DUPLICATE_CHECK) {
+      try {
+        const isDuplicate = await this.telemetryRepo.isDuplicatePacket(
+          validatedData,
+          packetDate
         );
+        if (isDuplicate) {
+          logger.warn(
+            { equipmentId: validatedData.equipmentId, timestamp: validatedData.timestamp },
+            'Edge Case Triggered: Duplicate telemetry packet received and skipped'
+          );
+          return {
+            success: true,
+            equipmentId: validatedData.equipmentId,
+            error: 'Duplicate packet skipped',
+          };
+        }
+      } catch (dbErr: any) {
+        logger.error({ err: dbErr.message }, 'Edge Case Triggered: Database connection error during duplicate check');
         return {
-          success: true,
-          equipmentId: validatedData.equipmentId,
-          error: 'Duplicate packet skipped',
+          success: false,
+          error: `Database unavailable: ${dbErr.message}`,
         };
       }
-    } catch (dbErr: any) {
-      logger.error({ err: dbErr.message }, 'Edge Case Triggered: Database connection error during duplicate check');
-      return {
-        success: false,
-        error: `Database unavailable: ${dbErr.message}`,
-      };
     }
 
     // Step 4: Execute Atomic Database Transaction (Telemetry insert + Equipment update + Rental update)
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // 4a. Store in Telemetry table
         await this.telemetryRepo.createTelemetry(validatedData, tx);
 

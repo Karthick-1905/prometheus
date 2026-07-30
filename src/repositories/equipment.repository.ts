@@ -4,15 +4,13 @@ import { Equipment, EquipmentStatus } from '@prisma/client';
 
 export class EquipmentRepository {
   /**
-   * Upserts the current state of an equipment item.
-   * If the equipment does not exist, it is created.
-   * If it exists, its status is updated.
+   * Upserts the current state of an equipment item using serialNumber.
    */
   public async upsertEquipment(telemetry: ValidatedTelemetry, tx?: any): Promise<Equipment> {
     const db = tx || prisma;
     const timestamp = new Date(telemetry.timestamp);
-    const eqId = parseInt(telemetry.equipmentId) || 1;
-    const dId = parseInt(telemetry.dealerId) || 1;
+    const code = telemetry.equipmentId;
+    const dealerIdInt = parseInt(telemetry.dealerId) || 1;
 
     let eqStatus: EquipmentStatus = EquipmentStatus.AVAILABLE;
     if (telemetry.rentalStatus === 'Maintenance') {
@@ -21,20 +19,44 @@ export class EquipmentRepository {
       eqStatus = EquipmentStatus.RENTED;
     }
 
-    return db.equipment.upsert({
+    // Ensure dealer exists
+    let dealer = await db.dealer.findFirst({ where: { dealerId: dealerIdInt } });
+    if (!dealer) {
+      dealer = await db.dealer.create({
+        data: {
+          dealerId: dealerIdInt,
+          dealerName: `Dealer ${telemetry.dealerId}`,
+        },
+      });
+    }
+
+    const existing = await db.equipment.findFirst({
       where: {
-        equipmentId: eqId,
+        OR: [
+          { serialNumber: code },
+          { equipmentId: parseInt(code) || -1 },
+        ],
       },
-      update: {
+    });
+
+    if (existing) {
+      return db.equipment.update({
+        where: { equipmentId: existing.equipmentId },
+        data: {
+          equipmentType: telemetry.equipmentType,
+          dealerId: dealer.dealerId,
+          status: eqStatus,
+          updatedAt: timestamp,
+        },
+      });
+    }
+
+    return db.equipment.create({
+      data: {
+        serialNumber: code,
+        equipmentName: `${telemetry.equipmentType} ${code}`,
         equipmentType: telemetry.equipmentType,
-        dealerId: dId,
-        status: eqStatus,
-        updatedAt: timestamp,
-      },
-      create: {
-        equipmentId: eqId,
-        equipmentType: telemetry.equipmentType,
-        dealerId: dId,
+        dealerId: dealer.dealerId,
         status: eqStatus,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -43,12 +65,16 @@ export class EquipmentRepository {
   }
 
   /**
-   * Fetches equipment state by equipmentId.
+   * Fetches equipment state by serialNumber or equipmentId.
    */
   public async getEquipmentById(equipmentId: string): Promise<Equipment | null> {
-    const eqId = parseInt(equipmentId) || 1;
-    return prisma.equipment.findUnique({
-      where: { equipmentId: eqId },
+    return prisma.equipment.findFirst({
+      where: {
+        OR: [
+          { serialNumber: equipmentId },
+          { equipmentId: parseInt(equipmentId) || -1 },
+        ],
+      },
     });
   }
 }
