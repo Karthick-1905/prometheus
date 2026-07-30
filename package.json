@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently -k -p \"[{name}]\" -n \"NEXT,INGEST\" -c \"cyan,yellow\" \"npm run dev:next\" \"npm run dev:ingest\"",
+    "dev:next": "next dev",
+    "dev:ingest": "tsx src/index.ts",
     "build": "next build",
     "start": "next start",
     "ingest": "tsx src/index.ts",
@@ -27,6 +29,7 @@
     "@types/node": "^20.17.14",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "concurrently": "^9.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "prisma": "^6.19.3",

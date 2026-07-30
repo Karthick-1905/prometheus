@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,9 +7,161 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =======================
-// Enums
-// =======================
+model Dealer {
+  dealerId        Int              @id @default(autoincrement()) @map("dealer_id")
+  dealerName      String?          @map("dealer_name") @db.VarChar
+  email           String?          @db.VarChar
+  phone           String?          @db.VarChar
+  address         String?
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamp(6)
+  equipments      Equipment[]
+  rentalContracts RentalContract[]
+
+  @@map("Dealer")
+}
+
+model Company {
+  companyId       Int              @id @default(autoincrement()) @map("company_id")
+  companyName     String?          @map("company_name") @db.VarChar
+  email           String?          @db.VarChar
+  phone           String?          @db.VarChar
+  address         String?
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamp(6)
+  projectSites    ProjectSite[]
+  rentalContracts RentalContract[]
+  users           User[]
+
+  @@map("Company")
+}
+
+model User {
+  userId                Int                   @id @default(autoincrement()) @map("user_id")
+  companyId             Int                   @map("company_id")
+  name                  String?               @db.VarChar
+  email                 String?               @db.VarChar
+  password              String?               @db.VarChar
+  role                  UserRole?
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamp(6)
+  assignedAssignments   EquipmentAssignment[] @relation("AssignedByUser")
+  checkedOutAssignments EquipmentAssignment[] @relation("CheckedOutByUser")
+  company               Company               @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
+
+  @@map("User")
+}
+
+model ProjectSite {
+  siteId               Int                   @id @default(autoincrement()) @map("site_id")
+  companyId            Int                   @map("company_id")
+  siteName             String?               @map("site_name") @db.VarChar
+  location             String?               @db.VarChar
+  status               ProjectSiteStatus?
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamp(6)
+  equipmentAssignments EquipmentAssignment[]
+  company              Company               @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
+
+  @@map("ProjectSite")
+}
+
+model Equipment {
+  equipmentId     Int                  @id @default(autoincrement()) @map("equipment_id")
+  dealerId        Int                  @map("dealer_id")
+  equipmentName   String?              @map("equipment_name") @db.VarChar
+  equipmentType   String?              @map("equipment_type") @db.VarChar
+  model           String?              @db.VarChar
+  serialNumber    String?              @map("serial_number") @db.VarChar
+  qrCode          String?              @map("qr_code") @db.VarChar
+  rfidTag         String?              @map("rfid_tag") @db.VarChar
+  status          EquipmentStatus?
+  dailyRentalCost Decimal?             @map("daily_rental_cost") @db.Decimal(10, 2)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamp(6)
+  dealer          Dealer               @relation(fields: [dealerId], references: [dealerId], onDelete: Cascade)
+  telemetries     EquipmentTelemetry[]
+  rentalContracts RentalContract[]
+
+  @@map("Equipment")
+}
+
+model RentalContract {
+  contractId           Int                   @id @default(autoincrement()) @map("contract_id")
+  dealerId             Int                   @map("dealer_id")
+  companyId            Int                   @map("company_id")
+  equipmentId          Int                   @map("equipment_id")
+  rentalStart          DateTime?             @map("rental_start") @db.Timestamp(6)
+  expectedReturn       DateTime?             @map("expected_return") @db.Timestamp(6)
+  actualReturn         DateTime?             @map("actual_return") @db.Timestamp(6)
+  rentalStatus         RentalContractStatus? @map("rental_status")
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamp(6)
+  equipmentAssignments EquipmentAssignment[]
+  company              Company               @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
+  dealer               Dealer                @relation(fields: [dealerId], references: [dealerId], onDelete: Cascade)
+  equipment            Equipment             @relation(fields: [equipmentId], references: [equipmentId], onDelete: Cascade)
+
+  @@map("RentalContract")
+}
+
+model EquipmentAssignment {
+  assignmentId     Int               @id @default(autoincrement()) @map("assignment_id")
+  contractId       Int               @map("contract_id")
+  siteId           Int               @map("site_id")
+  assignedBy       Int               @map("assigned_by")
+  checkedOutBy     Int               @map("checked_out_by")
+  checkoutTime     DateTime?         @map("checkout_time") @db.Timestamp(6)
+  checkinTime      DateTime?         @map("checkin_time") @db.Timestamp(6)
+  status           AssignmentStatus?
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamp(6)
+  assignedByUser   User              @relation("AssignedByUser", fields: [assignedBy], references: [userId], onDelete: Cascade)
+  checkedOutByUser User              @relation("CheckedOutByUser", fields: [checkedOutBy], references: [userId], onDelete: Cascade)
+  contract         RentalContract    @relation(fields: [contractId], references: [contractId], onDelete: Cascade)
+  site             ProjectSite       @relation(fields: [siteId], references: [siteId], onDelete: Cascade)
+  usageLogs        UsageLog[]
+
+  @@map("EquipmentAssignment")
+}
+
+model UsageLog {
+  usageId      Int                 @id @default(autoincrement()) @map("usage_id")
+  assignmentId Int                 @map("assignment_id")
+  runtimeHours Decimal?            @map("runtime_hours") @db.Decimal(10, 2)
+  idleHours    Decimal?            @map("idle_hours") @db.Decimal(10, 2)
+  fuelConsumed Decimal?            @map("fuel_consumed") @db.Decimal(10, 2)
+  latitude     Decimal?            @db.Decimal(9, 6)
+  longitude    Decimal?            @db.Decimal(9, 6)
+  recordedAt   DateTime?           @map("recorded_at") @db.Timestamp(6)
+  assignment   EquipmentAssignment @relation(fields: [assignmentId], references: [assignmentId], onDelete: Cascade)
+
+  @@map("UsageLog")
+}
+
+model EquipmentTelemetry {
+  telemetryId       BigInt    @id @default(autoincrement()) @map("telemetry_id")
+  equipmentId       Int       @map("equipment_id")
+  timestamp         DateTime  @db.Timestamp(6)
+  engineStatus      String?   @map("engine_status") @db.VarChar(10)
+  fuelLevel         Decimal?  @map("fuel_level") @db.Decimal(5, 2)
+  engineHours       Decimal?  @map("engine_hours") @db.Decimal(10, 2)
+  idleHours         Decimal?  @map("idle_hours") @db.Decimal(10, 2)
+  speed             Decimal?  @db.Decimal(5, 2)
+  latitude          Decimal?  @db.Decimal(9, 6)
+  longitude         Decimal?  @db.Decimal(9, 6)
+  engineTemperature Decimal?  @map("engine_temperature") @db.Decimal(5, 2)
+  hydraulicPressure Decimal?  @map("hydraulic_pressure") @db.Decimal(7, 2)
+  batteryVoltage    Decimal?  @map("battery_voltage") @db.Decimal(5, 2)
+  loadPercentage    Decimal?  @map("load_percentage") @db.Decimal(5, 2)
+  vibrationLevel    Decimal?  @map("vibration_level") @db.Decimal(5, 2)
+  rentalStatus      String?   @map("rental_status") @db.VarChar(20)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  equipment         Equipment @relation(fields: [equipmentId], references: [equipmentId], onDelete: Cascade)
+
+  @@index([equipmentId, timestamp])
+  @@map("EquipmentTelemetry")
+}
 
 enum UserRole {
   FLEET_MANAGER
@@ -40,148 +189,4 @@ enum RentalContractStatus {
 enum AssignmentStatus {
   ACTIVE
   RETURNED
-}
-
-// =======================
-// Models
-// =======================
-
-model Dealer {
-  dealerId   Int      @id @default(autoincrement()) @map("dealer_id")
-  dealerName String?  @map("dealer_name") @db.VarChar
-  email      String?  @db.VarChar
-  phone      String?  @db.VarChar
-  address    String?
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  equipments      Equipment[]
-  rentalContracts RentalContract[]
-
-  @@map("Dealer")
-}
-
-model Company {
-  companyId   Int      @id @default(autoincrement()) @map("company_id")
-  companyName String?  @map("company_name") @db.VarChar
-  email       String?  @db.VarChar
-  phone       String?  @db.VarChar
-  address     String?
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  users           User[]
-  projectSites    ProjectSite[]
-  rentalContracts RentalContract[]
-
-  @@map("Company")
-}
-
-model User {
-  userId    Int       @id @default(autoincrement()) @map("user_id")
-  companyId Int       @map("company_id")
-  name      String?   @db.VarChar
-  email     String?   @db.VarChar
-  password  String?   @db.VarChar
-  role      UserRole?
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  company Company @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
-
-  assignedAssignments   EquipmentAssignment[] @relation("AssignedByUser")
-  checkedOutAssignments EquipmentAssignment[] @relation("CheckedOutByUser")
-
-  @@map("User")
-}
-
-model ProjectSite {
-  siteId    Int                @id @default(autoincrement()) @map("site_id")
-  companyId Int                @map("company_id")
-  siteName  String?            @map("site_name") @db.VarChar
-  location  String?            @db.VarChar
-  status    ProjectSiteStatus?
-  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt DateTime           @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  company              Company               @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
-  equipmentAssignments EquipmentAssignment[]
-
-  @@map("ProjectSite")
-}
-
-model Equipment {
-  equipmentId     Int              @id @default(autoincrement()) @map("equipment_id")
-  dealerId        Int              @map("dealer_id")
-  equipmentName   String?          @map("equipment_name") @db.VarChar
-  equipmentType   String?          @map("equipment_type") @db.VarChar
-  model           String?          @db.VarChar
-  serialNumber    String?          @map("serial_number") @db.VarChar
-  qrCode          String?          @map("qr_code") @db.VarChar
-  rfidTag         String?          @map("rfid_tag") @db.VarChar
-  status          EquipmentStatus?
-  dailyRentalCost Decimal?         @map("daily_rental_cost") @db.Decimal(10, 2)
-  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  dealer          Dealer           @relation(fields: [dealerId], references: [dealerId], onDelete: Cascade)
-  rentalContracts RentalContract[]
-
-  @@map("Equipment")
-}
-
-model RentalContract {
-  contractId     Int                   @id @default(autoincrement()) @map("contract_id")
-  dealerId       Int                   @map("dealer_id")
-  companyId      Int                   @map("company_id")
-  equipmentId    Int                   @map("equipment_id")
-  rentalStart    DateTime?             @map("rental_start") @db.Timestamp(6)
-  expectedReturn DateTime?             @map("expected_return") @db.Timestamp(6)
-  actualReturn   DateTime?             @map("actual_return") @db.Timestamp(6)
-  rentalStatus   RentalContractStatus? @map("rental_status")
-  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  dealer               Dealer                @relation(fields: [dealerId], references: [dealerId], onDelete: Cascade)
-  company              Company               @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
-  equipment            Equipment             @relation(fields: [equipmentId], references: [equipmentId], onDelete: Cascade)
-  equipmentAssignments EquipmentAssignment[]
-
-  @@map("RentalContract")
-}
-
-model EquipmentAssignment {
-  assignmentId Int               @id @default(autoincrement()) @map("assignment_id")
-  contractId   Int               @map("contract_id")
-  siteId       Int               @map("site_id")
-  assignedBy   Int               @map("assigned_by")
-  checkedOutBy Int               @map("checked_out_by")
-  checkoutTime DateTime?         @map("checkout_time") @db.Timestamp(6)
-  checkinTime  DateTime?         @map("checkin_time") @db.Timestamp(6)
-  status       AssignmentStatus?
-  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  contract         RentalContract      @relation(fields: [contractId], references: [contractId], onDelete: Cascade)
-  site             ProjectSite         @relation(fields: [siteId], references: [siteId], onDelete: Cascade)
-  assignedByUser   User                @relation("AssignedByUser", fields: [assignedBy], references: [userId], onDelete: Cascade)
-  checkedOutByUser User                @relation("CheckedOutByUser", fields: [checkedOutBy], references: [userId], onDelete: Cascade)
-  usageLogs        UsageLog[]
-
-  @@map("EquipmentAssignment")
-}
-
-model UsageLog {
-  usageId      Int       @id @default(autoincrement()) @map("usage_id")
-  assignmentId Int       @map("assignment_id")
-  runtimeHours Decimal?  @map("runtime_hours") @db.Decimal(10, 2)
-  idleHours    Decimal?  @map("idle_hours") @db.Decimal(10, 2)
-  fuelConsumed Decimal?  @map("fuel_consumed") @db.Decimal(10, 2)
-  latitude     Decimal?  @db.Decimal(9, 6)
-  longitude    Decimal?  @db.Decimal(9, 6)
-  recordedAt   DateTime? @map("recorded_at") @db.Timestamp(6)
-
-  assignment EquipmentAssignment @relation(fields: [assignmentId], references: [assignmentId], onDelete: Cascade)
-
-  @@map("UsageLog")
 }

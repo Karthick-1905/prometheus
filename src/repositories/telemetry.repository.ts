@@ -1,155 +1,91 @@
 import { prisma } from '../lib/prisma';
 import { ValidatedTelemetry } from '../schemas/telemetry.schema';
-import { UsageLog } from '@prisma/client';
+import { EquipmentTelemetry } from '@prisma/client';
 
 export class TelemetryRepository {
   /**
-   * Checks if a telemetry packet with exact equipmentId and timestamp already exists.
+   * Helper to find or auto-create Equipment by serialNumber string (e.g. "CAT-EX-1001").
    */
-  public async isDuplicatePacket(equipmentId: string, timestamp: Date): Promise<boolean> {
-    const eqId = parseInt(equipmentId) || 1;
+  public async resolveEquipmentId(telemetry: ValidatedTelemetry, tx?: any): Promise<number> {
+    const db = tx || prisma;
+    const code = telemetry.equipmentId;
 
-    const assignment = await prisma.equipmentAssignment.findFirst({
+    // Try finding by serialNumber string or fallback to integer parsing
+    let equipment = await db.equipment.findFirst({
       where: {
-        contract: {
-          equipmentId: eqId,
-        },
-        status: 'ACTIVE',
+        OR: [
+          { serialNumber: code },
+          { equipmentId: parseInt(code) || -1 },
+        ],
       },
     });
 
-    if (!assignment) {
-      return false;
+    if (!equipment) {
+      const dealerIdInt = parseInt(telemetry.dealerId) || 1;
+      let dealer = await db.dealer.findFirst({ where: { dealerId: dealerIdInt } });
+      if (!dealer) {
+        dealer = await db.dealer.create({
+          data: {
+            dealerId: dealerIdInt,
+            dealerName: `Dealer ${telemetry.dealerId}`,
+          },
+        });
+      }
+
+      equipment = await db.equipment.create({
+        data: {
+          serialNumber: code,
+          equipmentName: `${telemetry.equipmentType} ${code}`,
+          equipmentType: telemetry.equipmentType,
+          dealerId: dealer.dealerId,
+          status: 'RENTED',
+        },
+      });
     }
 
-    const count = await prisma.usageLog.count({
+    return equipment.equipmentId;
+  }
+
+  /**
+   * Checks if a telemetry packet with exact equipmentId and timestamp already exists in EquipmentTelemetry.
+   */
+  public async isDuplicatePacket(telemetry: ValidatedTelemetry, timestamp: Date): Promise<boolean> {
+    const eqId = await this.resolveEquipmentId(telemetry);
+
+    const count = await prisma.equipmentTelemetry.count({
       where: {
-        assignmentId: assignment.assignmentId,
-        recordedAt: timestamp,
+        equipmentId: eqId,
+        timestamp,
       },
     });
     return count > 0;
   }
 
   /**
-   * Inserts a single telemetry record into the database as a UsageLog.
+   * Inserts a single raw telemetry record into the EquipmentTelemetry model.
    */
-  public async createTelemetry(telemetry: ValidatedTelemetry, tx?: any): Promise<UsageLog> {
+  public async createTelemetry(telemetry: ValidatedTelemetry, tx?: any): Promise<EquipmentTelemetry> {
     const db = tx || prisma;
     const timestamp = new Date(telemetry.timestamp);
-    const eqId = parseInt(telemetry.equipmentId) || 1;
-    const dId = parseInt(telemetry.dealerId) || 1;
+    const eqId = await this.resolveEquipmentId(telemetry, db);
 
-    let assignment = await db.equipmentAssignment.findFirst({
-      where: {
-        contract: {
-          equipmentId: eqId,
-        },
-        status: 'ACTIVE',
-      },
-    });
-
-    if (!assignment) {
-      // Setup necessary parent records if they do not exist
-      let company = await db.company.findFirst();
-      if (!company) {
-        company = await db.company.create({
-          data: {
-            companyId: 1,
-            companyName: 'Default Company',
-          },
-        });
-      }
-
-      let dealer = await db.dealer.findFirst({
-        where: { dealerId: dId },
-      });
-      if (!dealer) {
-        dealer = await db.dealer.create({
-          data: {
-            dealerId: dId,
-            dealerName: 'Default Dealer',
-          },
-        });
-      }
-
-      let equipment = await db.equipment.findFirst({
-        where: { equipmentId: eqId },
-      });
-      if (!equipment) {
-        equipment = await db.equipment.create({
-          data: {
-            equipmentId: eqId,
-            dealerId: dId,
-            equipmentType: telemetry.equipmentType,
-            status: 'AVAILABLE',
-          },
-        });
-      }
-
-      let contract = await db.rentalContract.findFirst({
-        where: {
-          equipmentId: eqId,
-          rentalStatus: 'ACTIVE',
-        },
-      });
-      if (!contract) {
-        contract = await db.rentalContract.create({
-          data: {
-            equipmentId: eqId,
-            dealerId: dId,
-            companyId: company.companyId,
-            rentalStatus: 'ACTIVE',
-            rentalStart: timestamp,
-          },
-        });
-      }
-
-      let projectSite = await db.projectSite.findFirst();
-      if (!projectSite) {
-        projectSite = await db.projectSite.create({
-          data: {
-            siteId: 1,
-            companyId: company.companyId,
-            siteName: 'Default Site',
-            status: 'ACTIVE',
-          },
-        });
-      }
-
-      let user = await db.user.findFirst();
-      if (!user) {
-        user = await db.user.create({
-          data: {
-            userId: 1,
-            companyId: company.companyId,
-            name: 'Default User',
-            role: 'FLEET_MANAGER',
-          },
-        });
-      }
-
-      assignment = await db.equipmentAssignment.create({
-        data: {
-          contractId: contract.contractId,
-          siteId: projectSite.siteId,
-          assignedBy: user.userId,
-          checkedOutBy: user.userId,
-          status: 'ACTIVE',
-          checkoutTime: timestamp,
-        },
-      });
-    }
-
-    return db.usageLog.create({
+    return db.equipmentTelemetry.create({
       data: {
-        assignmentId: assignment.assignmentId,
-        runtimeHours: telemetry.engineHours,
+        equipmentId: eqId,
+        timestamp,
+        engineStatus: telemetry.engineStatus,
+        fuelLevel: telemetry.fuelLevel,
+        engineHours: telemetry.engineHours,
         idleHours: telemetry.idleHours,
-        fuelConsumed: telemetry.fuelLevel,
+        speed: telemetry.speed,
         latitude: telemetry.latitude,
         longitude: telemetry.longitude,
-        recordedAt: timestamp,
+        engineTemperature: telemetry.engineTemperature,
+        hydraulicPressure: telemetry.hydraulicPressure,
+        batteryVoltage: telemetry.batteryVoltage,
+        loadPercentage: telemetry.loadPercentage,
+        vibrationLevel: telemetry.vibrationLevel,
+        rentalStatus: telemetry.rentalStatus,
       },
     });
   }
