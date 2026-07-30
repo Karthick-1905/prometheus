@@ -26,6 +26,7 @@ from app.models.domain import (
     EquipmentTelemetry,
     ProjectSite,
     RentalContract,
+    UsageLog,
     User,
 )
 from app.models.enums import (
@@ -66,6 +67,7 @@ def db_engine():
             RentalContract.__table__,
             EquipmentAssignment.__table__,
             EquipmentTelemetry.__table__,
+            UsageLog.__table__,
             AnomalyAlert.__table__,
         ],
     )
@@ -158,6 +160,52 @@ def seed_fleet(db_session: Session):
     tel1 = EquipmentTelemetry(
         telemetry_id=1,
         equipment_id=eq1.equipment_id,
+    db_session.flush()
+
+    # Usage logs (primary analytics source for eq1)
+    usage1 = UsageLog(
+        assignment_id=assignment.assignment_id,
+        runtime_hours=Decimal("28.0"),
+        idle_hours=Decimal("12.0"),
+        fuel_consumed=Decimal("180.0"),
+        latitude=Decimal("37.774900"),
+        longitude=Decimal("-122.419400"),
+        recorded_at=now - timedelta(days=1),
+    )
+    usage2 = UsageLog(
+        assignment_id=assignment.assignment_id,
+        runtime_hours=Decimal("22.0"),
+        idle_hours=Decimal("18.0"),
+        fuel_consumed=Decimal("140.0"),
+        latitude=Decimal("37.774900"),
+        longitude=Decimal("-122.419400"),
+        recorded_at=now - timedelta(hours=6),
+    )
+    db_session.add_all([usage1, usage2])
+
+    # SQLite does not autoincrement BigInteger PKs the same way as Postgres —
+    # set telemetry_id explicitly for tests.
+    # eq1: two readings so engine-hour deltas work as telemetry fallback proof
+    tel1a = EquipmentTelemetry(
+        telemetry_id=1,
+        equipment_id=eq1.equipment_id,
+        timestamp=now - timedelta(days=2),
+        engine_status="ON",
+        fuel_level=Decimal("90.0"),
+        engine_hours=Decimal("1180.0"),
+        idle_hours=Decimal("90.0"),
+        speed=Decimal("4.0"),
+        latitude=Decimal("37.774900"),
+        longitude=Decimal("-122.419400"),
+        engine_temperature=Decimal("88.0"),
+        battery_voltage=Decimal("13.5"),
+        load_percentage=Decimal("55.0"),
+        vibration_level=Decimal("2.0"),
+        rental_status="Working",
+    )
+    tel1b = EquipmentTelemetry(
+        telemetry_id=2,
+        equipment_id=eq1.equipment_id,
         timestamp=now - timedelta(minutes=2),
         engine_status="ON",
         fuel_level=Decimal("72.5"),
@@ -180,6 +228,15 @@ def seed_fleet(db_session: Session):
         fuel_level=Decimal("40.0"),
         engine_hours=Decimal("800.0"),
         idle_hours=Decimal("200.0"),
+    # eq2: mostly idle / off → underutilized via telemetry (no usage logs)
+    tel2a = EquipmentTelemetry(
+        telemetry_id=3,
+        equipment_id=eq2.equipment_id,
+        timestamp=now - timedelta(days=3),
+        engine_status="OFF",
+        fuel_level=Decimal("45.0"),
+        engine_hours=Decimal("800.0"),
+        idle_hours=Decimal("190.0"),
         speed=Decimal("0"),
         latitude=Decimal("37.780000"),
         longitude=Decimal("-122.410000"),
@@ -190,6 +247,24 @@ def seed_fleet(db_session: Session):
         rental_status="Overdue",
     )
     db_session.add_all([tel1, tel2])
+    tel2b = EquipmentTelemetry(
+        telemetry_id=4,
+        equipment_id=eq2.equipment_id,
+        timestamp=now - timedelta(hours=3),
+        engine_status="OFF",
+        fuel_level=Decimal("40.0"),
+        engine_hours=Decimal("801.0"),
+        idle_hours=Decimal("210.0"),
+        speed=Decimal("0"),
+        latitude=Decimal("37.780000"),
+        longitude=Decimal("-122.410000"),
+        engine_temperature=Decimal("40.0"),
+        battery_voltage=Decimal("12.1"),
+        load_percentage=Decimal("0"),
+        vibration_level=Decimal("0.5"),
+        rental_status="Overdue",
+    )
+    db_session.add_all([tel1a, tel1b, tel2a, tel2b])
 
     alert = AnomalyAlert(
         equipment_id=str(eq1.equipment_id),
