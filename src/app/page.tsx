@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 // ─── Types ────────────────────────────────────────────────
@@ -354,6 +355,9 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="header-right">
+          <Link href="/ml-lab" className="nav-link-btn">
+            🌲 ML Lab
+          </Link>
           <div className="live-badge">
             <div className="live-dot" />
             Live
