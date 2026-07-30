@@ -11,6 +11,13 @@
     "test:if": "tsx scripts/test_isolation_forest.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "seed:data": "tsx scripts/seed-rental-data.ts",
+    "train:forest": "tsx scripts/train-isolation-forest.ts",
+    "ml:generate": "python python-ml/generate_training_data.py --n 10000",
+    "ml:train": "python python-ml/train_and_eval.py --n 10000",
+    "ml:server": "python python-ml/main.py",
+    "ml:test": "python python-ml/test_predict_api.py",
+    "ml:all": "python python-ml/train_and_eval.py --n 10000",
     "lint": "eslint"
   },
   "dependencies": {

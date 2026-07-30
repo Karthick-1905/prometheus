@@ -23,5 +23,6 @@
 
 Notes:
 - Both phases run on every validated packet after feature engineering.
-- Isolation Forest warms up on ~200 live samples (or loads models/isolation-forest.json).
+- Isolation Forest is the **Python sklearn model** (python-ml FastAPI :8000).
+- Train: npm run ml:train  →  annomoly/training-data.csv + isolation_forest.joblib
 - Hybrid classifier elevates severity when both phases agree; IF-only hits become STATISTICAL_OUTLIER.
