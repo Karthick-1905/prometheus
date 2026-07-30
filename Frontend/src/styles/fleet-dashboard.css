@@ -1,0 +1,658 @@
+/* Fleet dashboard — aligned to app surface / primary tokens */
+
+.fleet-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fleet-dash .dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Metric strip ─────────────────────────────────────────── */
+.fd-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fd-metric {
+  min-width: 0;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 10px;
+  background: var(--bg-surface-lowest);
+  box-shadow: 0 1px 2px rgba(31, 27, 16, 0.04);
+}
+
+.fd-metric-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.fd-metric-top span:first-child {
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.fd-metric-top .material-symbols-outlined {
+  font-size: 1.15rem;
+  color: var(--primary);
+}
+
+.fd-metric strong {
+  display: block;
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.fd-metric p {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  font-weight: 650;
+  color: var(--on-surface-variant);
+  line-height: 1.35;
+}
+
+.fd-metric p em {
+  font-style: normal;
+  font-weight: 800;
+  color: var(--on-surface);
+}
+
+.fd-metric a {
+  color: var(--primary);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.fd-metric a:hover {
+  text-decoration: underline;
+}
+
+.fd-status-mix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.fd-status-mix span {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--on-surface-variant);
+}
+
+.fd-status-mix strong {
+  display: inline;
+  font-size: inherit;
+  font-weight: 850;
+  color: var(--on-surface);
+  letter-spacing: 0;
+}
+
+/* ── Main two-column body ─────────────────────────────────── */
+.fd-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.fd-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  height: 100%;
+}
+
+/* Demand grows to fill leftover height in the left column */
+.fd-panel-demand {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.fd-panel-demand > .fd-panel-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ── Panel (matches app Panel: lowest surface, outline, xl→10px) ── */
+.fd-panel {
+  min-width: 0;
+  border: 1px solid var(--outline-variant);
+  border-radius: 10px;
+  background: var(--bg-surface-lowest);
+  box-shadow: 0 1px 2px rgba(31, 27, 16, 0.04);
+  overflow: hidden;
+}
+
+.fd-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 60%, transparent);
+}
+
+.fd-panel-head h2 {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-surface);
+}
+
+.fd-panel-body {
+  padding: 14px;
+}
+
+.fd-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.fd-link:hover {
+  text-decoration: underline;
+}
+
+.fd-link .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+/* ── Utilization block ────────────────────────────────────── */
+.fd-util {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.fd-donut {
+  --size: 6.5rem;
+  width: var(--size);
+  height: var(--size);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.fd-donut svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.fd-donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.fd-donut-center strong {
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.fd-donut-center span {
+  margin-top: 2px;
+  font-size: 0.56rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.fd-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fd-legend-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.72rem;
+}
+
+.fd-legend-row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--on-surface-variant);
+  font-weight: 650;
+}
+
+.fd-legend-row strong {
+  font-weight: 800;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.fd-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--outline-variant);
+  flex-shrink: 0;
+}
+
+.fd-swatch.is-primary {
+  background: var(--primary);
+}
+
+.fd-swatch.is-accent {
+  background: var(--primary-container);
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+}
+
+.fd-swatch.is-muted {
+  background: var(--bg-surface-high);
+  border: 1px solid var(--outline-variant);
+}
+
+/* ── Bar chart ────────────────────────────────────────────── */
+.fd-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 7rem;
+  margin-top: 4px;
+}
+
+.fd-bar-col {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.fd-bar {
+  width: 100%;
+  max-width: 1.4rem;
+  min-height: 4px;
+  border-radius: 3px 3px 1px 1px;
+  background: var(--primary);
+  transform-origin: bottom;
+  animation: meter-reveal 480ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+.fd-bar.is-soft {
+  background: color-mix(in srgb, var(--primary) 45%, var(--outline-variant));
+}
+
+.fd-bar-col span {
+  max-width: 100%;
+  font-size: 0.58rem;
+  font-weight: 750;
+  color: var(--on-surface-variant);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fd-chart-value {
+  margin: 2px 0 10px;
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Site meters ──────────────────────────────────────────── */
+.fd-site-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fd-site-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, 1.2fr) 2.6rem;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.72rem;
+}
+
+.fd-site-row > span:first-child {
+  font-weight: 700;
+  color: var(--on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fd-site-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-surface-container);
+  overflow: hidden;
+}
+
+.fd-site-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transform-origin: left;
+  animation: meter-reveal 480ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+.fd-site-row strong {
+  text-align: right;
+  font-weight: 800;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Anomaly list ─────────────────────────────────────────── */
+.fd-anomaly-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.fd-anomaly {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  padding: 12px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 55%, transparent);
+  text-decoration: none;
+  color: inherit;
+}
+
+.fd-anomaly:last-child {
+  border-bottom: 0;
+}
+
+.fd-anomaly:hover h3 {
+  color: var(--primary);
+}
+
+.fd-anomaly h3 {
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.3;
+  color: var(--on-surface);
+}
+
+.fd-anomaly p {
+  margin-top: 3px;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--on-surface-variant);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fd-anomaly-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+
+.fd-time {
+  font-size: 0.62rem;
+  font-weight: 650;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+}
+
+/* ── Demand cards (column list — fills space under Sites) ── */
+.fd-demand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+
+.fd-demand-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color var(--motion-state, 200ms) var(--ease-out-quart, ease),
+    background-color var(--motion-state, 200ms) var(--ease-out-quart, ease);
+}
+
+.fd-demand-card:hover {
+  background: var(--bg-surface-lowest);
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--outline-variant));
+}
+
+.fd-demand-main {
+  min-width: 0;
+}
+
+.fd-demand-card h3 {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--on-surface);
+  line-height: 1.25;
+}
+
+.fd-demand-card p {
+  margin-top: 2px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fd-demand-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.fd-demand-foot strong {
+  font-size: 0.88rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.fd-demand-foot span {
+  font-size: 0.58rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--on-surface-variant);
+}
+
+.fd-demand-bar {
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--bg-surface-container);
+  overflow: hidden;
+}
+
+.fd-demand-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.fd-demand-warning {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: var(--on-surface-variant);
+  font-weight: 600;
+}
+
+/* ── Contracts ────────────────────────────────────────────── */
+.fd-contract-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.fd-contract-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 55%, transparent);
+  font-size: 0.78rem;
+}
+
+.fd-contract-row:last-child {
+  border-bottom: 0;
+}
+
+.fd-contract-row strong,
+.fd-contract-row span {
+  display: block;
+}
+
+.fd-contract-row strong {
+  font-weight: 750;
+  color: var(--on-surface);
+}
+
+.fd-contract-row span {
+  margin-top: 2px;
+  font-size: 0.68rem;
+  color: var(--on-surface-variant);
+}
+
+/* ── Empty ────────────────────────────────────────────────── */
+.fd-empty {
+  padding: 20px 8px;
+  text-align: center;
+  color: var(--on-surface-variant);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.fd-empty strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.84rem;
+  color: var(--on-surface);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .fd-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .fd-body {
+    grid-template-columns: 1fr;
+  }
+
+  .fd-anomaly-list {
+    max-height: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .fd-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .fd-util {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: left;
+  }
+
+  .fd-legend {
+    width: 100%;
+  }
+
+  .fd-anomaly {
+    grid-template-columns: 1fr;
+  }
+
+  .fd-anomaly-meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .fd-demand-card {
+    grid-template-columns: 1fr;
+  }
+
+  .fd-demand-foot {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    width: 100%;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-bar,
+  .fd-site-meter > span {
+    animation: none !important;
+  }
+}

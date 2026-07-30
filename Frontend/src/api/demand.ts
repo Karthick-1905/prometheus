@@ -1,4 +1,7 @@
-const BASE = import.meta.env.VITE_API_URL ?? '';
+/** Demand forecasting client — uses session auth when present, else demo headers. */
+import { idempotencyKey, readApiSession, request as platformRequest } from './client';
+
+const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 export interface ProjectSummary {
   projectId: number;
@@ -30,7 +33,7 @@ export interface ForecastPoint {
   safePlanningUnits: number;
   predictedMachineHours: number;
   predictedUtilization: number | null;
-  trend: 'RISING' | 'FALLING' | 'STABLE';
+  trend: 'RISING' | 'FALLING' | 'STABLE' | string;
   confidence: string;
   forecastMethod: string;
   coldStart: boolean;
@@ -51,25 +54,45 @@ export interface HistoryPoint {
   projectPhase: string;
 }
 
+export interface ForecastSummary {
+  weekOneExpectedUnits: number;
+  weekOneSafeUnits: number;
+  fourWeekMachineHours: number;
+  currentUtilization: number | null;
+  idleCapacity: number | null;
+  trend: string;
+  confidence: string;
+  coldStart: boolean;
+}
+
 export interface ForecastResponse {
   success: boolean;
   project: ProjectSummary;
   equipmentType: string;
   history: HistoryPoint[];
   forecast: ForecastPoint[];
-  summary: {
-    weekOneExpectedUnits: number;
-    weekOneSafeUnits: number;
-    fourWeekMachineHours: number;
-    currentUtilization: number | null;
-    idleCapacity: number | null;
-    trend: string;
-    confidence: string;
-    coldStart: boolean;
-  };
+  summary: ForecastSummary;
   asOf: string;
   forecastRunId: string;
   modelVersion: string;
+  servingMethods?: { units?: string; machineHours?: string };
+  dataMode: string;
+  pricingMode: string;
+  warning: string;
+}
+
+export interface ProjectBundleResponse {
+  success: boolean;
+  project: ProjectSummary;
+  equipment: Array<{
+    equipmentType: string;
+    summary: ForecastSummary;
+    forecast: ForecastPoint[];
+  }>;
+  asOf: string;
+  forecastRunId: string;
+  modelVersion: string;
+  servingMethods?: { units?: string; machineHours?: string };
   dataMode: string;
   pricingMode: string;
   warning: string;
@@ -112,6 +135,22 @@ export interface Recommendation {
   decision?: string;
 }
 
+export interface DemandStatus {
+  service: string;
+  ready: boolean;
+  dataMode: string;
+  synthetic: boolean;
+  modelLoaded: boolean;
+  modelPromoted: boolean;
+  unitModelPromoted?: boolean;
+  hourModelPromoted?: boolean;
+  modelVersion: string;
+  modelError: string | null;
+  servingMethods?: { units?: string; machineHours?: string };
+  manifest?: Record<string, unknown>;
+  warning?: string;
+}
+
 export interface DealerRow {
   region: string;
   equipmentType: string;
@@ -140,17 +179,41 @@ export interface DealerAction {
   version?: number;
 }
 
-const customerHeaders = {
-  'X-Actor-Id': 'demo-customer-pm',
-  'X-User-Role': 'CUSTOMER_PROJECT_MANAGER',
-  'X-Company-Id': '1',
-};
-
-const dealerHeaders = {
-  'X-Actor-Id': 'demo-fleet-manager',
-  'X-User-Role': 'FLEET_MANAGER',
-  'X-Dealer-Id': '1',
-};
+function demandHeaders(persona: 'customer' | 'dealer' = 'customer'): Record<string, string> {
+  const session = readApiSession();
+  if (session?.accessToken) {
+    return { Authorization: `Bearer ${session.accessToken}` };
+  }
+  if (session?.role) {
+    // Map dashboard roles onto demand demo headers
+    const role = session.role.toUpperCase();
+    if (persona === 'dealer' || role === 'FLEET_MANAGER' || role === 'DEALER' || role === 'DEALER_MANAGER') {
+      return {
+        'X-Actor-Id': session.actorId || 'demo-fleet-manager',
+        'X-User-Role': role === 'DEALER' ? 'DEALER_MANAGER' : 'FLEET_MANAGER',
+        'X-Dealer-Id': String(session.dealerId ?? 1),
+      };
+    }
+    return {
+      'X-Actor-Id': session.actorId || 'demo-customer-pm',
+      'X-User-Role': 'CUSTOMER_PROJECT_MANAGER',
+      'X-Company-Id': String(session.companyId ?? 1),
+    };
+  }
+  // Fallback demo personas when not logged in via session
+  if (persona === 'dealer') {
+    return {
+      'X-Actor-Id': 'demo-fleet-manager',
+      'X-User-Role': 'FLEET_MANAGER',
+      'X-Dealer-Id': '1',
+    };
+  }
+  return {
+    'X-Actor-Id': 'demo-customer-pm',
+    'X-User-Role': 'CUSTOMER_PROJECT_MANAGER',
+    'X-Company-Id': '1',
+  };
+}
 
 async function request<T>(
   path: string,
@@ -161,8 +224,9 @@ async function request<T>(
     cache: init.cache ?? 'no-store',
     ...init,
     headers: {
-      'Content-Type': 'application/json',
-      ...(persona === 'dealer' ? dealerHeaders : customerHeaders),
+      Accept: 'application/json',
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...demandHeaders(persona),
       ...(init.headers ?? {}),
     },
   });
@@ -173,28 +237,37 @@ async function request<T>(
     payload = { detail: `The server returned ${response.status} without JSON.` };
   }
   if (!response.ok) {
-    throw new Error(payload.detail ?? payload.error ?? `Request failed (${response.status})`);
+    throw new Error(
+      typeof payload.detail === 'string'
+        ? payload.detail
+        : payload.error ?? `Request failed (${response.status})`,
+    );
   }
   return payload as T;
 }
 
-function idempotencyKey(prefix: string): string {
-  const suffix =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `${prefix}-${suffix}`;
-}
-
 export const demandApi = {
+  status: () => request<DemandStatus>('/api/demand/status'),
+
   projects: () =>
-    request<{ projects: ProjectSummary[]; warning: string }>('/api/demand/projects'),
+    request<{
+      success: boolean;
+      projects: ProjectSummary[];
+      warning: string;
+      asOf?: string;
+      modelVersion?: string;
+      dataMode?: string;
+      servingMethods?: { units?: string; machineHours?: string };
+    }>('/api/demand/projects'),
+
   project: (projectId: number) =>
-    request<Record<string, unknown>>(`/api/demand/projects/${projectId}`),
+    request<ProjectBundleResponse>(`/api/demand/projects/${projectId}`),
+
   equipmentForecast: (projectId: number, equipmentType: string) =>
     request<ForecastResponse>(
       `/api/demand/projects/${projectId}/equipment/${encodeURIComponent(equipmentType)}`,
     ),
+
   explanation: (forecastId: number) =>
     request<{
       success: boolean;
@@ -203,37 +276,50 @@ export const demandApi = {
       explanation: string;
       warning?: string;
     }>(`/api/demand/forecasts/${forecastId}/explanation`),
+
   packages: (projectId: number, equipmentType: string, preference: string) =>
-    request<{ recommendation: Recommendation; warning: string }>(
+    request<{
+      success: boolean;
+      recommendation: Recommendation;
+      warning: string;
+      modelVersion?: string;
+      dataMode?: string;
+    }>(
       `/api/demand/projects/${projectId}/packages?equipmentType=${encodeURIComponent(
         equipmentType,
       )}&preference=${encodeURIComponent(preference)}`,
     ),
+
   feedback: (body: Record<string, unknown>) =>
     request<{ success: boolean }>('/api/demand/feedback', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey('feedback') },
       body: JSON.stringify(body),
     }),
+
   override: (body: Record<string, unknown>) =>
     request<{ success: boolean }>('/api/demand/override', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey('override') },
       body: JSON.stringify(body),
     }),
+
   manualReview: (body: Record<string, unknown>) =>
     request<{ success: boolean }>('/api/demand/manual-reviews', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey('review') },
       body: JSON.stringify(body),
     }),
+
   dealer: () =>
     request<{
       rows: DealerRow[];
       actions: DealerAction[];
       inventoryAsOf: string;
       warning: string;
+      modelVersion?: string;
     }>('/api/demand/dealer', {}, 'dealer'),
+
   decideDealerAction: (action: DealerAction, decision: 'APPROVED' | 'REJECTED') =>
     request<{ success: boolean; status: string }>(
       `/api/demand/dealer/actions/${action.actionId}/decision`,
@@ -252,3 +338,6 @@ export const demandApi = {
       'dealer',
     ),
 };
+
+// re-export platform request helper if needed by callers
+export { platformRequest };

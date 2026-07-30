@@ -245,3 +245,46 @@ class AnomalyAlert(Base):
     is_resolved: Mapped[bool] = mapped_column("is_resolved", Boolean, default=False)
     resolved_at: Mapped[Optional[datetime]] = mapped_column("resolved_at", DateTime(timezone=False))
     detected_at: Mapped[datetime] = mapped_column("detected_at", DateTime(timezone=False), server_default=func.now())
+
+
+class AppNotification(Base):
+    """In-app operational notifications (rentals, site bookings, overdue)."""
+
+    __tablename__ = "AppNotification"
+    __table_args__ = (
+        Index("ix_app_notification_company_created", "company_id", "created_at"),
+        Index("ix_app_notification_dedupe", "dedupe_key", unique=True),
+        Index("ix_app_notification_unread", "company_id", "is_read", "created_at"),
+    )
+
+    notification_id: Mapped[int] = mapped_column(
+        "notification_id", Integer, primary_key=True, autoincrement=True
+    )
+    company_id: Mapped[Optional[int]] = mapped_column(
+        "company_id", Integer, ForeignKey("Company.company_id", ondelete="CASCADE"), nullable=True
+    )
+    dealer_id: Mapped[Optional[int]] = mapped_column(
+        "dealer_id", Integer, ForeignKey("Dealer.dealer_id", ondelete="SET NULL"), nullable=True
+    )
+    site_id: Mapped[Optional[int]] = mapped_column("site_id", Integer, nullable=True)
+    contract_id: Mapped[Optional[int]] = mapped_column("contract_id", Integer, nullable=True)
+    equipment_id: Mapped[Optional[int]] = mapped_column("equipment_id", Integer, nullable=True)
+    assignment_id: Mapped[Optional[int]] = mapped_column("assignment_id", Integer, nullable=True)
+    notification_type: Mapped[str] = mapped_column("notification_type", String(40))
+    severity: Mapped[str] = mapped_column(String(20), default="INFO")
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(Text)
+    action_url: Mapped[Optional[str]] = mapped_column("action_url", String(500))
+    action_label: Mapped[Optional[str]] = mapped_column("action_label", String(80))
+    recipient_email: Mapped[Optional[str]] = mapped_column("recipient_email", String(200))
+    email_status: Mapped[str] = mapped_column("email_status", String(20), default="PENDING")
+    email_error: Mapped[Optional[str]] = mapped_column("email_error", Text)
+    email_sent_at: Mapped[Optional[datetime]] = mapped_column(
+        "email_sent_at", DateTime(timezone=False)
+    )
+    is_read: Mapped[bool] = mapped_column("is_read", Boolean, default=False)
+    read_at: Mapped[Optional[datetime]] = mapped_column("read_at", DateTime(timezone=False))
+    dedupe_key: Mapped[str] = mapped_column("dedupe_key", String(160))
+    created_at: Mapped[datetime] = mapped_column(
+        "created_at", DateTime(timezone=False), server_default=func.now()
+    )

@@ -1,7 +1,8 @@
 """Company-side rental contract views for Fleet Manager."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -11,8 +12,13 @@ from app.security.dashboard_access import (
     require_fleet_access,
 )
 from app.services.fleet import FleetService
+from app.services.notifications import NotificationService
 
 router = APIRouter(prefix="/api/v1/contracts", tags=["Contracts"])
+
+
+class ExtendContractBody(BaseModel):
+    extraDays: int = Field(7, ge=1, le=90, description="Days to add to expected return")
 
 
 def _principal(
@@ -41,3 +47,25 @@ def overdue(
 ):
     rows = FleetService.contracts_overdue(db, company_id=principal.company_id)
     return {"success": True, "data": rows, "meta": {"total": len(rows)}}
+
+
+@router.post("/{contract_id}/extend")
+def extend_contract(
+    contract_id: int,
+    body: ExtendContractBody,
+    db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
+):
+    """Extend expected return (and clear OVERDUE → ACTIVE). Used from email/notification links."""
+    try:
+        row = NotificationService.extend_contract(
+            db,
+            contract_id,
+            extra_days=body.extraDays,
+            company_id=principal.company_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    return {"success": True, "data": row}

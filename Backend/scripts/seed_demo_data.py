@@ -449,6 +449,33 @@ def seed(db: Session) -> dict:
     db.add_all(alerts)
     db.commit()
 
+    # Keep Postgres identity sequences in sync after explicit telemetry_id inserts
+    if engine.dialect.name.startswith("postgres"):
+        for table, col in [
+            ("EquipmentTelemetry", "telemetry_id"),
+            ("AnomalyAlert", "alert_id"),
+            ("UsageLog", "usage_id"),
+            ("EquipmentAssignment", "assignment_id"),
+            ("RentalContract", "contract_id"),
+            ("Equipment", "equipment_id"),
+            ("ProjectSite", "site_id"),
+            ("User", "user_id"),
+            ("Company", "company_id"),
+            ("Dealer", "dealer_id"),
+        ]:
+            db.execute(
+                text(
+                    f"""
+                    SELECT setval(
+                      pg_get_serial_sequence('"{table}"', '{col}'),
+                      COALESCE((SELECT MAX("{col}") FROM "{table}"), 1),
+                      true
+                    )
+                    """
+                )
+            )
+        db.commit()
+
     return {
         "dealers": len(dealers),
         "companies": len(companies),

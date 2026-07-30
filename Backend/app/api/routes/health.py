@@ -40,10 +40,13 @@ def root():
 
 @router.get("/health")
 def health():
+    from app.services.redis_bus import redis_status
+
     return {
         "status": "ok",
         "service": get_settings().app_name,
         "model_loaded": predictor.is_loaded(),
         "model_meta": predictor.get_meta(),
         "demand_forecasting": demand_service.status(),
+        "redis": redis_status(),
     }

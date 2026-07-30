@@ -11,7 +11,7 @@ export default function AppSidebar() {
   const actor = user?.actorId ?? readApiSession()?.actorId ?? 'User';
 
   return (
-    <aside className="h-screen w-64 shrink-0 fixed left-0 top-0 bg-surface-container-low border-r border-outline-variant flex flex-col py-6 px-4 gap-2 z-40">
+    <aside className="h-full max-h-[100dvh] w-64 shrink-0 fixed left-0 top-0 bg-surface-container-low border-r border-outline-variant flex flex-col py-6 px-4 gap-2 z-40">
       <div className="mb-4 px-2">
         <div className="font-headline-lg text-2xl font-black text-on-surface tracking-tight flex items-center gap-2">
           <span

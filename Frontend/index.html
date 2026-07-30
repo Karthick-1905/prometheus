@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="light">
+<html lang="en" class="light h-full">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -36,8 +36,13 @@
       rel="stylesheet"
     />
   </head>
-  <body class="bg-surface text-on-surface min-h-screen flex overflow-hidden font-sans">
-    <div id="root" class="w-full h-full flex"></div>
+  <body class="bg-surface text-on-surface h-full overflow-hidden font-sans">
+    <!--
+      App shell: body is viewport-locked; RoleLayout's <main> (and guest pages)
+      own vertical scrolling via min-h-0 + overflow-y-auto.
+    -->
+    <div id="root" class="w-full h-full min-h-0"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+

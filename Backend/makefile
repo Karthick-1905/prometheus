@@ -2,7 +2,7 @@
 # Run from Backend/:  make help
 
 .PHONY: help up down restart logs ps redis-cli \
-	run-subscriber run-publisher run-api \
+	run-subscriber run-publisher run-live-logs run-api \
 	install install-redis test seed
 
 PYTHON   ?= .venv/bin/python
@@ -27,7 +27,8 @@ help:
 	@echo ""
 	@echo "Pipeline workers"
 	@echo "  make run-publisher   Simulate IoT devices → MQTT broker"
-	@echo "  make run-subscriber  MQTT → IngestionService (persist + publish)"
+	@echo "  make run-subscriber  MQTT → IngestionService (persist + Redis)"
+	@echo "  make run-live-logs   Demo live logs → Ingestion → Redis → SSE"
 	@echo "  make run-api         FastAPI on :8000"
 	@echo ""
 	@echo "Setup / tests"
@@ -77,6 +78,9 @@ run-subscriber:
 
 run-publisher:
 	$(PYTHON) pipeline/publish_telemetry.py
+
+run-live-logs:
+	$(PYTHON) pipeline/publish_live_logs.py
 
 run-api:
 	$(PYTHON) -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

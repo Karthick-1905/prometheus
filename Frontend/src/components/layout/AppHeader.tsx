@@ -1,14 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useRole } from '../../context/RoleContext';
 import { COMMON_NAV, ROLE_NAV } from '../../types/roles';
 import { readApiSession } from '../../api/client';
+import { notificationsApi } from '../../api/platform';
 
 export default function AppHeader({ title, subtitle }: { title?: string; subtitle?: string }) {
   const { role, roleLabel, user } = useRole();
   const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
   const items = role ? ROLE_NAV[role] : [];
   const actor = user?.actorId ?? readApiSession()?.actorId ?? 'User';
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      notificationsApi
+        .unreadCount()
+        .then((res) => {
+          if (!cancelled) setUnread(res.data?.unread ?? 0);
+        })
+        .catch(() => {
+          if (!cancelled) setUnread(0);
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [role, user?.actorId]);
 
   return (
     <header
@@ -52,10 +74,15 @@ export default function AppHeader({ title, subtitle }: { title?: string; subtitl
           </div>
           <Link
             to="/notifications"
-            className="w-9 h-9 rounded-lg border border-outline-variant bg-surface-container flex items-center justify-center hover:bg-surface-container-high"
-            title="Notifications"
+            className="relative w-9 h-9 rounded-lg border border-outline-variant bg-surface-container flex items-center justify-center hover:bg-surface-container-high"
+            title={unread > 0 ? `${unread} unread notifications` : 'Notifications'}
           >
             <span className="material-symbols-outlined text-lg text-on-surface-variant">notifications</span>
+            {unread > 0 && (
+              <span className="header-notify-badge" aria-label={`${unread} unread`}>
+                {unread > 99 ? '99+' : unread}
+              </span>
+            )}
           </Link>
           <Link
             to="/profile"

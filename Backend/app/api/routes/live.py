@@ -1,8 +1,14 @@
-"""SSE live streams for Fleet Manager / Site Manager dashboards."""
+"""SSE live streams for Fleet Manager / Site Manager dashboards.
+
+Live logs prefer Redis pub/sub (ingestion publishes telemetry:events).
+Falls back to DB polling when Redis is unavailable.
+"""
 from __future__ import annotations
 
 import asyncio
 import json
+import queue
+import threading
 from datetime import datetime
 from typing import AsyncIterator, Callable, Optional, Tuple
 
@@ -18,6 +24,7 @@ from app.security.dashboard_access import (
     require_site_ops,
 )
 from app.services.fleet import FleetService
+from app.services.redis_bus import recent_events, redis_status, subscribe_events
 
 router = APIRouter(prefix="/api/v1/live", tags=["Live SSE"])
 
@@ -87,11 +94,135 @@ async def _poll_stream(
         await asyncio.sleep(interval_sec)
 
 
+async def _redis_log_stream(
+    request: Request,
+    *,
+    company_id: Optional[int],
+    equipment_id: Optional[str],
+    max_seconds: float,
+    recent_limit: int,
+) -> AsyncIterator[str]:
+    """
+    Stream Redis live logs:
+      1) recent buffer snapshot
+      2) pub/sub messages until max_seconds or disconnect
+    """
+    status = redis_status()
+    yield _sse(
+        "stream.ready",
+        {
+            "source": "redis" if status.get("ok") else "unavailable",
+            "redis": status,
+            "companyId": company_id,
+            "equipmentId": equipment_id,
+            "ts": datetime.utcnow().isoformat(),
+        },
+        event_id="0",
+    )
+
+    if not status.get("ok"):
+        yield _sse(
+            "error",
+            {
+                "message": (
+                    "Redis unavailable — start with `make up` "
+                    f"(expected {status.get('url')}). Falling back is not used on this channel."
+                ),
+                "ts": datetime.utcnow().isoformat(),
+            },
+            event_id="err",
+        )
+        return
+
+    # Recent history first (newest-first already)
+    recent = recent_events(limit=recent_limit)
+    # reverse so UI sees chronological if it prepends; we still send as history.batch
+    history = list(reversed(recent))
+    if equipment_id:
+        history = [
+            e
+            for e in history
+            if str(e.get("equipmentId") or "") == str(equipment_id)
+        ]
+    yield _sse(
+        "log.history",
+        {
+            "logs": history,
+            "count": len(history),
+            "ts": datetime.utcnow().isoformat(),
+        },
+        event_id="history",
+    )
+
+    stop = threading.Event()
+    q: queue.Queue = queue.Queue(maxsize=500)
+
+    def _reader():
+        try:
+            for event in subscribe_events(stop):
+                try:
+                    q.put(event, timeout=0.2)
+                except queue.Full:
+                    pass
+        except Exception as exc:  # noqa: BLE001
+            try:
+                q.put({"__error__": str(exc)}, timeout=0.2)
+            except queue.Full:
+                pass
+
+    thread = threading.Thread(target=_reader, name="redis-live-logs", daemon=True)
+    thread.start()
+
+    started = asyncio.get_event_loop().time()
+    tick = 0
+    try:
+        while True:
+            if await request.is_disconnected():
+                break
+            if max_seconds > 0 and (asyncio.get_event_loop().time() - started) >= max_seconds:
+                break
+            tick += 1
+
+            drained = 0
+            while drained < 50:
+                try:
+                    item = q.get_nowait()
+                except queue.Empty:
+                    break
+                drained += 1
+                if "__error__" in item:
+                    yield _sse(
+                        "error",
+                        {"message": item["__error__"], "ts": datetime.utcnow().isoformat()},
+                        event_id=str(tick),
+                    )
+                    continue
+                if equipment_id and str(item.get("equipmentId") or "") != str(equipment_id):
+                    continue
+                yield _sse("log.append", item, event_id=str(item.get("id") or tick))
+
+            # heartbeat so proxies / clients know stream is alive
+            if tick % 4 == 0:
+                yield _sse(
+                    "heartbeat",
+                    {
+                        "tick": tick,
+                        "source": "redis",
+                        "ts": datetime.utcnow().isoformat(),
+                    },
+                    event_id=f"hb-{tick}",
+                )
+            await asyncio.sleep(0.25)
+    finally:
+        stop.set()
+        thread.join(timeout=1.5)
+
+
 @router.get("/fleet")
 async def live_fleet(
     request: Request,
-    intervalMs: int = Query(500, ge=100, le=30000),
-    maxTicks: int = Query(2, ge=1, le=120),
+    intervalMs: int = Query(1000, ge=100, le=30000),
+    maxTicks: int = Query(60, ge=1, le=600),
     principal: DashboardPrincipal = Depends(get_dashboard_principal),
 ):
     require_fleet_access(principal)
@@ -131,19 +262,54 @@ async def live_fleet(
 @router.get("/logs")
 async def live_logs(
     request: Request,
-    intervalMs: int = Query(500, ge=100, le=30000),
-    maxTicks: int = Query(2, ge=1, le=120),
+    source: str = Query(
+        "redis",
+        description="redis = ingestion pub/sub live logs; db = poll Postgres/alerts",
+    ),
+    equipmentId: Optional[str] = Query(None),
+    maxSeconds: int = Query(120, ge=5, le=3600),
+    recentLimit: int = Query(40, ge=1, le=200),
+    intervalMs: int = Query(1000, ge=100, le=30000),
+    maxTicks: int = Query(60, ge=1, le=600),
     principal: DashboardPrincipal = Depends(get_dashboard_principal),
 ):
+    """
+    Live machinery logs.
+
+    Primary path: Redis channel published by IngestionService after each packet.
+    Fallback: DB poll of recent alerts/telemetry when source=db.
+    """
     require_fleet_access(principal)
     company_id = principal.company_id
 
+    if source.lower() == "redis":
+        return StreamingResponse(
+            _redis_log_stream(
+                request,
+                company_id=company_id,
+                equipment_id=equipmentId,
+                max_seconds=float(maxSeconds),
+                recent_limit=recentLimit,
+            ),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
     def producer(db: Session, tick: int):
-        logs = FleetService.live_logs(db, company_id=company_id, limit=20)
+        logs = FleetService.live_logs(
+            db,
+            company_id=company_id,
+            equipment_id=int(equipmentId) if equipmentId and equipmentId.isdigit() else None,
+            limit=20,
+        )
         return [
             (
                 "log.batch",
-                {"tick": tick, "logs": logs, "ts": datetime.utcnow().isoformat()},
+                {"tick": tick, "logs": logs, "ts": datetime.utcnow().isoformat(), "source": "db"},
             )
         ]
 
@@ -166,8 +332,8 @@ async def live_logs(
 @router.get("/alerts")
 async def live_alerts(
     request: Request,
-    intervalMs: int = Query(500, ge=100, le=30000),
-    maxTicks: int = Query(2, ge=1, le=120),
+    intervalMs: int = Query(1000, ge=100, le=30000),
+    maxTicks: int = Query(60, ge=1, le=600),
     principal: DashboardPrincipal = Depends(get_dashboard_principal),
 ):
     require_fleet_access(principal)
@@ -214,8 +380,8 @@ async def live_alerts(
 async def live_site(
     site_id: int,
     request: Request,
-    intervalMs: int = Query(500, ge=100, le=30000),
-    maxTicks: int = Query(2, ge=1, le=120),
+    intervalMs: int = Query(1000, ge=100, le=30000),
+    maxTicks: int = Query(60, ge=1, le=600),
     principal: DashboardPrincipal = Depends(get_dashboard_principal),
 ):
     require_site_ops(principal)
@@ -251,3 +417,11 @@ async def live_site(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/redis/status")
+def live_redis_status(
+    principal: DashboardPrincipal = Depends(get_dashboard_principal),
+):
+    require_fleet_access(principal)
+    return {"success": True, "data": redis_status()}
