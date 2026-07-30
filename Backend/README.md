@@ -15,7 +15,7 @@ Backend/
 │   ├── api/routes/             # HTTP routes
 │   └── services/
 │       ├── anomaly_detection/  # rules + IF train/predict
-│       ├── demand_forecasting/ # scaffold
+│       ├── demand_forecasting/ # direct forecasts, validation, recommendations
 │       └── ingestion/          # telemetry pipeline
 ├── artifacts/                  # joblib model + training CSV
 ├── alembic/                    # migrations
@@ -58,6 +58,16 @@ uvicorn app.main:app --reload --port 8000
 | PATCH | `/api/alerts` | Resolve alert |
 | GET | `/api/telemetry` | Fleet snapshot |
 | POST | `/api/simulate` | Ingest telemetry + hybrid detect |
-| GET | `/api/demand/status` | Demand forecasting scaffold |
+| GET | `/api/demand/status` | Artifact and serving-method status |
+| GET | `/api/demand/projects` | Active/upcoming forecast projects |
+| GET | `/api/demand/projects/{id}/equipment/{type}` | Four-week demand forecast |
+| GET | `/api/demand/projects/{id}/packages` | Customer-first package comparison |
+| GET | `/api/demand/dealer` | Regional demand, availability, and safe transfers |
+| GET | `/api/demand/metrics` | Admin-only verification and promotion evidence |
+| POST | `/api/demand/override` | Versioned, idempotent customer override |
+
+Demand metrics are synthetic engineering evidence, not measured business
+performance. See [`../docs/demand-forecasting.md`](../docs/demand-forecasting.md)
+for the tournament, validation, reproduction commands, and production gate.
 
 Swagger: http://localhost:8000/docs

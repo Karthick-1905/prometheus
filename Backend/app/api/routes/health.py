@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.config import get_settings
 from app.services.anomaly_detection.predictor import predictor
-from app.services.demand_forecasting import DemandForecastingService
+from app.services.demand_forecasting import demand_service
 
 router = APIRouter(tags=["System"])
 
@@ -34,5 +34,5 @@ def health():
         "service": get_settings().app_name,
         "model_loaded": predictor.is_loaded(),
         "model_meta": predictor.get_meta(),
-        "demand_forecasting": DemandForecastingService.status(),
+        "demand_forecasting": demand_service.status(),
     }
