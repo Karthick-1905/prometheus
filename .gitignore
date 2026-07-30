@@ -39,3 +39,6 @@ pipeline/telemetry.csv
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Isolation Forest trained models (generated at runtime)
+/models

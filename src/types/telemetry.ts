@@ -1,6 +1,6 @@
 export type EngineStatus = 'ON' | 'OFF';
 
-export type RentalStatusType = 'Available' | 'Working' | 'Idle' | 'Maintenance' | 'Returned';
+export type RentalStatusType = 'Available' | 'Working' | 'Idle' | 'Maintenance' | 'Returned' | 'Overdue' | 'Assigned';
 
 export interface RawTelemetryPayload {
   timestamp: string;

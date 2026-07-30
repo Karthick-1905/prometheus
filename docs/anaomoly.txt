@@ -1,0 +1,27 @@
+                Real-Time MQTT Logs
+                        │
+                        ▼
+              Data Validation Layer
+                        │
+                        ▼
+             Feature Engineering Layer
+                        │
+        ┌───────────────┴───────────────┐
+        │                               │
+        ▼                               ▼
+ Rule-Based Detection         Isolation Forest
+ (src/services/anomaly/       (src/services/anomaly/
+  rule-detector.ts)            isolation-forest/)
+        │                               │
+        └───────────────┬───────────────┘
+                        ▼
+            Hybrid Classification
+         (hybrid-classifier.ts)
+                        │
+                        ▼
+         Dashboard + Alert + Recommendation
+
+Notes:
+- Both phases run on every validated packet after feature engineering.
+- Isolation Forest warms up on ~200 live samples (or loads models/isolation-forest.json).
+- Hybrid classifier elevates severity when both phases agree; IF-only hits become STATISTICAL_OUTLIER.
