@@ -1,0 +1,22 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cat-redis
+    ports:
+      # Host 6380 avoids clashing with other local Redis on 6379
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    # AOF so messages aren't the only durability story (streams later);
+    # pure PUBLISH/SUBSCRIBE is still fire-and-forget while a consumer is offline.
+    command: redis-server --appendonly yes --save 60 1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  redis_data:
