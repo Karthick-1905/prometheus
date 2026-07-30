@@ -38,9 +38,56 @@ html, body {
   background-color: #fff8f0;
   color: #1f1b10;
   min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* Prevent rubber-band scroll issues in standalone PWA */
+  overscroll-behavior-y: none;
+  /* iOS: avoid auto text zoom on form focus */
+  -webkit-text-size-adjust: 100%;
 }
+
+/* Standalone PWA (installed home-screen app) */
+@media (display-mode: standalone) {
+  body {
+    /* Safe areas for notched phones */
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Touch-friendly targets */
+@media (pointer: coarse) {
+  button,
+  .btn-primary,
+  .btn-secondary,
+  a.nav-link-btn {
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* prevents iOS zoom-on-focus */
+  }
+
+  .alerts-table,
+  table {
+    font-size: 12px;
+  }
+}
+
+/* Horizontal scroll wrappers for tables on narrow screens */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+/* Prevent layout shift from mobile bottom nav */
+.pb-mobile-nav {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
 
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;

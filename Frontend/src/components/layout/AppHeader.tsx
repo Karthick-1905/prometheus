@@ -11,8 +11,11 @@ export default function AppHeader({ title, subtitle }: { title?: string; subtitl
   const actor = user?.actorId ?? readApiSession()?.actorId ?? 'User';
 
   return (
-    <header className="sticky top-0 z-30 border-b border-outline-variant bg-surface/95 backdrop-blur">
-      <div className="flex justify-between items-center px-4 sm:px-8 w-full min-h-16">
+    <header
+      className="sticky top-0 z-30 border-b border-outline-variant bg-surface/95 backdrop-blur"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
+      <div className="flex justify-between items-center px-3 sm:px-8 w-full min-h-14 sm:min-h-16">
         <div className="flex items-center gap-3">
           <button
             type="button"

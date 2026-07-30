@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FeedbackBanner } from '../components/ui/Feedback';
+import InstallAppBanner from '../components/pwa/InstallAppBanner';
 import { useRole } from '../context/RoleContext';
 import {
   ROLE_DESCRIPTIONS,
@@ -35,73 +36,78 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="login-shell">
-      <section className="login-intro">
-        <div className="brand-lockup">
-          <span className="material-symbols-outlined" aria-hidden="true">construction</span>
-          <div><strong>CAT Smart Rental</strong><span>Connected operations</span></div>
-        </div>
-        <h1>One live view of every machine, commitment, and decision.</h1>
-        <p>
-          Sign in to the role-specific workspace backed by live fleet, dealer, site,
-          anomaly, and demand services.
-        </p>
-        <ul>
-          <li><span className="material-symbols-outlined">check_circle</span>Scoped backend access</li>
-          <li><span className="material-symbols-outlined">check_circle</span>Live operational status</li>
-          <li><span className="material-symbols-outlined">check_circle</span>Auditable human decisions</li>
-        </ul>
-      </section>
+    <>
+      <main className="login-shell">
+        <section className="login-intro">
+          <div className="brand-lockup">
+            <span className="material-symbols-outlined" aria-hidden="true">construction</span>
+            <div><strong>CAT Smart Rental</strong><span>Connected operations · installable PWA</span></div>
+          </div>
+          <h1>One live view of every machine, commitment, and decision.</h1>
+          <p>
+            Sign in to the role-specific workspace backed by live fleet, dealer, site,
+            anomaly, and demand services. Install on your phone for app-like full-screen use.
+          </p>
+          <ul>
+            <li><span className="material-symbols-outlined">check_circle</span>Scoped backend access</li>
+            <li><span className="material-symbols-outlined">check_circle</span>Live operational status</li>
+            <li><span className="material-symbols-outlined">install_mobile</span>Install as mobile web app</li>
+          </ul>
+        </section>
 
-      <form className="login-panel" onSubmit={submit}>
-        <div>
-          <h2>Sign in</h2>
-          <p>The demo backend issues a real JWT for the selected workspace.</p>
-        </div>
-        {error && <FeedbackBanner tone="error">{error}</FeedbackBanner>}
-        <label className="field">
-          <span>Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            required
-          />
-        </label>
-        <label className="field">
-          <span>Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        <fieldset className="role-picker">
-          <legend>Workspace</legend>
-          {ROLES.map((role) => (
-            <label key={role} className={selected === role ? 'is-selected' : ''}>
-              <input
-                type="radio"
-                name="role"
-                value={role}
-                checked={selected === role}
-                onChange={() => setSelected(role)}
-              />
-              <span className="material-symbols-outlined" aria-hidden="true">{ROLE_ICONS[role]}</span>
-              <span><strong>{ROLE_LABELS[role]}</strong><small>{ROLE_DESCRIPTIONS[role]}</small></span>
-            </label>
-          ))}
-        </fieldset>
-        <button className="btn-primary login-submit" type="submit" disabled={loading}>
-          {loading ? 'Signing in…' : `Continue as ${ROLE_LABELS[selected]}`}
-        </button>
-        <p className="login-note">
-          Demo authentication accepts any non-empty password. Production policy belongs in the identity provider.
-        </p>
-      </form>
-    </main>
+        <form className="login-panel" onSubmit={submit}>
+          <div>
+            <h2>Sign in</h2>
+            <p>The demo backend issues a real JWT for the selected workspace.</p>
+          </div>
+          {error && <FeedbackBanner tone="error">{error}</FeedbackBanner>}
+          <label className="field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              required
+              inputMode="email"
+            />
+          </label>
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
+          <fieldset className="role-picker">
+            <legend>Workspace</legend>
+            {ROLES.map((role) => (
+              <label key={role} className={selected === role ? 'is-selected' : ''}>
+                <input
+                  type="radio"
+                  name="role"
+                  value={role}
+                  checked={selected === role}
+                  onChange={() => setSelected(role)}
+                />
+                <span className="material-symbols-outlined" aria-hidden="true">{ROLE_ICONS[role]}</span>
+                <span><strong>{ROLE_LABELS[role]}</strong><small>{ROLE_DESCRIPTIONS[role]}</small></span>
+              </label>
+            ))}
+          </fieldset>
+          <button className="btn-primary login-submit" type="submit" disabled={loading}>
+            {loading ? 'Signing in…' : `Continue as ${ROLE_LABELS[selected]}`}
+          </button>
+          <p className="login-note">
+            Demo authentication accepts any non-empty password. Production policy belongs in the identity provider.
+            On mobile, use <strong>Settings → Mobile app</strong> or the install banner to add CAT Rental to your home screen.
+          </p>
+        </form>
+      </main>
+      <InstallAppBanner />
+    </>
   );
 }

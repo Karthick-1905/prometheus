@@ -446,6 +446,12 @@ npm run dev
 
 - App: http://localhost:5173  
 
+**Mobile / installable app (PWA):** build and serve over HTTPS (or use `npm run preview` on your LAN).  
+On Android Chrome use **Install app**; on iPhone Safari use **Share → Add to Home Screen**.  
+In-app: install banner + **Settings → Mobile app**.  
+
+
+
 ### MQTT worker (optional)
 
 ```powershell

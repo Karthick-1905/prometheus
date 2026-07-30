@@ -1,6 +1,6 @@
-# CAT Smart Rental — Frontend (RBAC mock)
+# CAT Smart Rental — Frontend
 
-Vite + React SPA with **role-based workspaces**. Authentication is simulated via a role selector (no JWT / passwords).
+Vite + React SPA with **role-based workspaces** and **installable Progressive Web App (PWA)** support for mobile/desktop.
 
 ## Run
 
@@ -10,7 +10,22 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 → **Select role → Continue**.
+Open http://localhost:5173 → sign in → choose workspace.
+
+### Install as mobile app (PWA)
+
+1. **Production / HTTPS** (or `npm run build && npm run preview` locally):
+2. **Android Chrome:** browser menu → **Install app** / **Add to Home screen**, or use the in-app banner / **Settings → Mobile app**.
+3. **iPhone Safari:** Share → **Add to Home Screen**.
+4. Launch from the home-screen icon (standalone, full-screen).
+
+PWA is powered by `vite-plugin-pwa` (service worker + web app manifest). App shell caches offline; API calls stay network-first.
+
+```powershell
+npm run build
+npm run preview
+# open the preview URL on your phone (same LAN) or deploy to HTTPS host
+```
 
 ## Roles & routes
 
