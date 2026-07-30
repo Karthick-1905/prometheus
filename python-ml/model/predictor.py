@@ -21,20 +21,12 @@ META_PATH = os.path.join(ANNOMOLY_DIR, "model_meta.json")
 
 # Default order when meta is missing (matches FeatureVector schema)
 DEFAULT_FEATURE_COLS = [
-    "fuelLevel",
-    "engineHours",
-    "idleHours",
-    "speed",
-    "engineTemperature",
-    "hydraulicPressure",
-    "batteryVoltage",
-    "loadPercentage",
-    "vibrationLevel",
-    "fuelDelta",
-    "engineHoursDelta",
-    "idleHoursDelta",
-    "engineOn",
-    "distanceFromSiteCenter",
+    "engineHoursPerDay",
+    "idleHoursPerDay",
+    "rentalDays",
+    "hasOperator",
+    "hasSite",
+    "idleRatio",
 ]
 
 _clf = None
@@ -55,7 +47,7 @@ def load_model() -> bool:
         with open(META_PATH, encoding="utf-8") as f:
             _meta = json.load(f)
     else:
-        _meta = {"feature_cols": DEFAULT_FEATURE_COLS, "feature_dim": 14}
+        _meta = {"feature_cols": DEFAULT_FEATURE_COLS, "feature_dim": 6}
 
     print(f"Isolation Forest model loaded from {MODEL_PATH}")
     if _meta:

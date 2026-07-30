@@ -67,15 +67,11 @@ FEATURE_COLS_LEGACY = [
 
 
 def _resolve_feature_cols(df: pd.DataFrame) -> list[str]:
-    if all(c in df.columns for c in FEATURE_COLS_14):
-        return FEATURE_COLS_14
     if all(c in df.columns for c in FEATURE_COLS_LEGACY):
-        print("WARNING: Using legacy 6-dim features. Regenerate CSV with generate_training_data.py")
         return FEATURE_COLS_LEGACY
     raise ValueError(
-        "CSV must contain either 14-dim live features or legacy 6-dim summary columns.\n"
-        f"Missing 14-dim: {[c for c in FEATURE_COLS_14 if c not in df.columns]}\n"
-        f"Missing legacy: {[c for c in FEATURE_COLS_LEGACY if c not in df.columns]}"
+        "CSV must contain the 6-dim rental summary columns.\n"
+        f"Missing: {[c for c in FEATURE_COLS_LEGACY if c not in df.columns]}"
     )
 
 

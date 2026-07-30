@@ -31,100 +31,60 @@ def smoke_predict() -> None:
         (
             "normal_working",
             {
-                "fuelLevel": 72,
-                "engineHours": 1200,
-                "idleHours": 250,
-                "speed": 8,
-                "engineTemperature": 84,
-                "hydraulicPressure": 160,
-                "batteryVoltage": 13.6,
-                "loadPercentage": 55,
-                "vibrationLevel": 3.2,
-                "fuelDelta": 0.4,
-                "engineHoursDelta": 0.08,
-                "idleHoursDelta": 0.02,
-                "engineOn": 1,
-                "distanceFromSiteCenter": 0.004,
+                "engineHoursPerDay": 6.5,
+                "idleHoursPerDay": 1.2,
+                "rentalDays": 15.0,
+                "hasOperator": 1.0,
+                "hasSite": 1.0,
+                "idleRatio": 0.1558,
             },
             False,
         ),
         (
-            "overheat",
+            "excessive_idle",
             {
-                "fuelLevel": 60,
-                "engineHours": 1300,
-                "idleHours": 280,
-                "speed": 5,
-                "engineTemperature": 114,
-                "hydraulicPressure": 230,
-                "batteryVoltage": 13.2,
-                "loadPercentage": 96,
-                "vibrationLevel": 14.0,
-                "fuelDelta": 5.5,
-                "engineHoursDelta": 0.09,
-                "idleHoursDelta": 0.01,
-                "engineOn": 1,
-                "distanceFromSiteCenter": 0.003,
+                "engineHoursPerDay": 1.5,
+                "idleHoursPerDay": 10.0,
+                "rentalDays": 15.0,
+                "hasOperator": 1.0,
+                "hasSite": 1.0,
+                "idleRatio": 0.8696,
             },
             True,
         ),
         (
-            "fuel_theft",
+            "unassigned_site",
             {
-                "fuelLevel": 20,
-                "engineHours": 1400,
-                "idleHours": 300,
-                "speed": 0,
-                "engineTemperature": 80,
-                "hydraulicPressure": 150,
-                "batteryVoltage": 13.5,
-                "loadPercentage": 10,
-                "vibrationLevel": 1.5,
-                "fuelDelta": 18.0,
-                "engineHoursDelta": 0.02,
-                "idleHoursDelta": 0.05,
-                "engineOn": 1,
-                "distanceFromSiteCenter": 0.002,
+                "engineHoursPerDay": 0.0,
+                "idleHoursPerDay": 11.0,
+                "rentalDays": 20.0,
+                "hasOperator": 0.0,
+                "hasSite": 0.0,
+                "idleRatio": 1.0,
             },
             True,
         ),
         (
-            "severe_vibration",
+            "unassigned_operator",
             {
-                "fuelLevel": 55,
-                "engineHours": 900,
-                "idleHours": 180,
-                "speed": 2,
-                "engineTemperature": 102,
-                "hydraulicPressure": 220,
-                "batteryVoltage": 13.1,
-                "loadPercentage": 98,
-                "vibrationLevel": 24.0,
-                "fuelDelta": 1.2,
-                "engineHoursDelta": 0.07,
-                "idleHoursDelta": 0.01,
-                "engineOn": 1,
-                "distanceFromSiteCenter": 0.005,
+                "engineHoursPerDay": 4.0,
+                "idleHoursPerDay": 1.0,
+                "rentalDays": 10.0,
+                "hasOperator": 0.0,
+                "hasSite": 1.0,
+                "idleRatio": 0.2,
             },
             True,
         ),
         (
             "engine_off_normal",
             {
-                "fuelLevel": 80,
-                "engineHours": 1100,
-                "idleHours": 220,
-                "speed": 0,
-                "engineTemperature": 28,
-                "hydraulicPressure": 5,
-                "batteryVoltage": 12.8,
-                "loadPercentage": 0,
-                "vibrationLevel": 0.1,
-                "fuelDelta": 0.0,
-                "engineHoursDelta": 0.0,
-                "idleHoursDelta": 0.0,
-                "engineOn": 0,
-                "distanceFromSiteCenter": 0.001,
+                "engineHoursPerDay": 0.0,
+                "idleHoursPerDay": 0.0,
+                "rentalDays": 12.0,
+                "hasOperator": 0.0,
+                "hasSite": 1.0,
+                "idleRatio": 0.0,
             },
             False,
         ),
@@ -149,7 +109,7 @@ def smoke_predict() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=10000)
+    parser.add_argument("--n", type=int, default=40000)
     parser.add_argument("--anomaly-rate", type=float, default=0.10)
     parser.add_argument("--skip-generate", action="store_true")
     parser.add_argument("--n-estimators", type=int, default=200)
@@ -161,16 +121,11 @@ def main() -> None:
     print("=" * 64)
 
     if not args.skip_generate:
-        from generate_training_data import generate
-        import pandas as pd
-
-        print(f"\n[1/3] Generating {args.n:,} training rows...")
-        df = generate(n_samples=args.n, anomaly_rate=args.anomaly_rate)
-        os.makedirs(os.path.dirname(os.path.abspath(args.csv)), exist_ok=True)
-        df.to_csv(args.csv, index=False)
-        print(f"      Wrote {args.csv}  ({len(df):,} rows, anomalies={int(df['isAnomaly'].sum())})")
+        from aggregate_telemetry import aggregate_telemetry
+        print("\n[1/3] Aggregating rental summary dataset from telemetry.csv...")
+        aggregate_telemetry()
     else:
-        print(f"\n[1/3] Skip generate - using existing {args.csv}")
+        print(f"\n[1/3] Skip aggregation - using existing {args.csv}")
 
     print("\n[2/3] Training IsolationForest...")
     _clf, _scaler, meta = train(

@@ -36,23 +36,44 @@ export class AnomalyService {
       // ── Phase 2b: Isolation Forest via Python ML Server (optional) ────────
       const ifFindings: DetectedAnomaly[] = [];
 
+      const eqId = parseInt(telemetry.equipmentId) || 1;
+      const activeContract = await prisma.rentalContract.findFirst({
+        where: {
+          equipmentId: eqId,
+          rentalStatus: 'ACTIVE',
+        },
+        orderBy: {
+          rentalStart: 'desc',
+        },
+      });
+
+      let rentalDays = 15;
+      let daysElapsed = 1;
+
+      if (activeContract) {
+        const start = activeContract.rentalStart ? new Date(activeContract.rentalStart) : new Date();
+        const end = activeContract.expectedReturn ? new Date(activeContract.expectedReturn) : null;
+        if (end) {
+          rentalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+        const now = new Date(telemetry.timestamp);
+        daysElapsed = Math.max(1, Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+      }
+
+      const engineHoursPerDay = telemetry.engineHours / daysElapsed;
+      const idleHoursPerDay = telemetry.idleHours / daysElapsed;
+      const totalHours = engineHoursPerDay + idleHoursPerDay;
+      const idleRatio = totalHours > 0 ? (idleHoursPerDay / totalHours) : 0;
+
       const mlVector: MLFeatureVector = {
-        fuelLevel:              telemetry.fuelLevel,
-        engineHours:            telemetry.engineHours,
-        idleHours:              telemetry.idleHours,
-        speed:                  telemetry.speed,
-        engineTemperature:      telemetry.engineTemperature,
-        hydraulicPressure:      telemetry.hydraulicPressure,
-        batteryVoltage:         telemetry.batteryVoltage,
-        loadPercentage:         telemetry.loadPercentage,
-        vibrationLevel:         telemetry.vibrationLevel,
-        fuelDelta:              features.fuelDelta,
-        engineHoursDelta:       features.engineHoursDelta,
-        idleHoursDelta:         features.idleHoursDelta,
-        engineOn:               telemetry.engineStatus === 'ON' ? 1 : 0,
-        distanceFromSiteCenter: features.distanceFromSiteCenter ?? 0,
-        equipmentId:            telemetry.equipmentId,
-        equipmentType:          telemetry.equipmentType,
+        engineHoursPerDay,
+        idleHoursPerDay,
+        rentalDays,
+        hasOperator: telemetry.operatorId ? 1 : 0,
+        hasSite: telemetry.siteId ? 1 : 0,
+        idleRatio,
+        equipmentId: telemetry.equipmentId,
+        equipmentType: telemetry.equipmentType,
       };
 
       const mlResult = await MLClient.predict(mlVector);

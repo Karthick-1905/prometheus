@@ -16,8 +16,8 @@
     "db:push": "prisma db push",
     "db:seed": "tsx scripts/seed-rental-data.ts",
 
-    "ml:generate": "python python-ml/generate_training_data.py --n 15000",
-    "ml:train": "python python-ml/train_and_eval.py --n 15000",
+    "ml:generate": "python python-ml/generate_training_data.py --n 40000",
+    "ml:train": "python python-ml/train_and_eval.py --n 40000",
     "ml:server": "python python-ml/main.py",
     "ml:test": "python python-ml/test_predict_api.py",
 

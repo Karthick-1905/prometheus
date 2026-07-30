@@ -33,22 +33,14 @@ def predict(body: FeatureVector):
             ),
         )
 
-    # Build 14-element vector in the exact FEATURE_NAMES order
+    # Build 6-element vector in the exact FEATURE_NAMES order
     vector = [
-        body.fuelLevel,
-        body.engineHours,
-        body.idleHours,
-        body.speed,
-        body.engineTemperature,
-        body.hydraulicPressure,
-        body.batteryVoltage,
-        body.loadPercentage,
-        body.vibrationLevel,
-        body.fuelDelta,
-        body.engineHoursDelta,
-        body.idleHoursDelta,
-        body.engineOn,
-        body.distanceFromSiteCenter,
+        body.engineHoursPerDay,
+        body.idleHoursPerDay,
+        body.rentalDays,
+        body.hasOperator,
+        body.hasSite,
+        body.idleRatio,
     ]
 
     is_anomaly, anomaly_score, confidence = predictor.score(vector)

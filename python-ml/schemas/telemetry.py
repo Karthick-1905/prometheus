@@ -12,28 +12,16 @@ from typing import Optional
 
 class FeatureVector(BaseModel):
     """
-    14-dimensional feature vector that maps 1:1 to the TypeScript
-    buildFeatureVector() function in src/services/anomaly/isolation-forest/feature-vector.ts.
+    6-dimensional feature vector corresponding to the historical rental dataset
+    from the problem statement (docs/ps.txt):
+      engineHoursPerDay, idleHoursPerDay, rentalDays, hasOperator, hasSite, idleRatio
     """
-    # Raw sensor values
-    fuelLevel:            float = Field(..., ge=0,   le=100,  description="Fuel tank level (%)")
-    engineHours:          float = Field(..., ge=0,             description="Cumulative engine hours")
-    idleHours:            float = Field(..., ge=0,             description="Cumulative idle hours")
-    speed:                float = Field(..., ge=0,             description="Current speed (km/h)")
-    engineTemperature:    float = Field(..., ge=0,   le=200,   description="Engine temp (°C)")
-    hydraulicPressure:    float = Field(..., ge=0,             description="Hydraulic pressure (bar)")
-    batteryVoltage:       float = Field(..., ge=0,             description="Battery voltage (V)")
-    loadPercentage:       float = Field(..., ge=0,   le=100,  description="Engine load (%)")
-    vibrationLevel:       float = Field(..., ge=0,             description="Vibration (mm/s)")
-
-    # Engineered delta features
-    fuelDelta:            float = Field(..., ge=0,             description="Fuel drop since last reading (%)")
-    engineHoursDelta:     float = Field(..., ge=0,             description="Engine hours gained this step")
-    idleHoursDelta:       float = Field(..., ge=0,             description="Idle hours gained this step")
-
-    # Binary / spatial
-    engineOn:             float = Field(..., ge=0,   le=1,    description="Engine status (1=ON, 0=OFF)")
-    distanceFromSiteCenter: float = Field(..., ge=0,          description="GPS distance from site center (degrees)")
+    engineHoursPerDay: float = Field(..., ge=0, description="Average engine hours per day")
+    idleHoursPerDay:   float = Field(..., ge=0, description="Average idle hours per day")
+    rentalDays:        float = Field(..., ge=0, description="Total days rented")
+    hasOperator:       float = Field(..., ge=0, le=1, description="Binary operator presence (1=Yes, 0=No)")
+    hasSite:           float = Field(..., ge=0, le=1, description="Binary site presence (1=Yes, 0=No)")
+    idleRatio:         float = Field(..., ge=0, le=1, description="Idle hours ratio")
 
     # Context (not used in scoring, only for response enrichment)
     equipmentId:          Optional[str] = None

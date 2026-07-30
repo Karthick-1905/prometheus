@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IngestionService } from '@/services/ingestion.service';
+import { AnomalyService } from '@/services/anomaly/anomaly.service';
+import { TelemetrySchema } from '@/schemas/telemetry.schema';
 import mqtt from 'mqtt';
 
 /**
@@ -53,6 +55,18 @@ export async function POST(request: NextRequest) {
     // Direct invocation fallback so it runs database + hybrid anomaly pipeline immediately
     const ingestion = new IngestionService();
     const result = await ingestion.processRawPayload(topic, JSON.stringify(telemetry));
+
+    // Force run detectAndRecord synchronously during simulator tests to ensure DB state has updated
+    if (result.success) {
+      const validationResult = TelemetrySchema.safeParse(telemetry);
+      if (validationResult.success) {
+        try {
+          await AnomalyService.detectAndRecord(validationResult.data);
+        } catch (anomalyErr: any) {
+          console.error('Failed executing anomaly service in simulation:', anomalyErr.message);
+        }
+      }
+    }
 
     return NextResponse.json({
       success: result.success,

@@ -1,51 +1,43 @@
 {
-  "trained_at": "2026-07-30T15:25:55.092357+00:00",
-  "n_samples": 10800,
-  "n_train_rows": 12000,
+  "trained_at": "2026-07-30T15:53:46.657074+00:00",
+  "n_samples": 201,
+  "n_train_rows": 201,
   "n_estimators": 200,
   "contamination": 0.02,
-  "decision_threshold": 0.0005446871962897026,
+  "decision_threshold": -0.04571630511970631,
   "max_samples": "auto",
   "random_state": 42,
   "feature_cols": [
-    "fuelLevel",
-    "engineHours",
-    "idleHours",
-    "speed",
-    "engineTemperature",
-    "hydraulicPressure",
-    "batteryVoltage",
-    "loadPercentage",
-    "vibrationLevel",
-    "fuelDelta",
-    "engineHoursDelta",
-    "idleHoursDelta",
-    "engineOn",
-    "distanceFromSiteCenter"
+    "engineHoursPerDay",
+    "idleHoursPerDay",
+    "rentalDays",
+    "hasOperator",
+    "hasSite",
+    "idleRatio"
   ],
-  "feature_dim": 14,
+  "feature_dim": 6,
   "train_on_normal_only": true,
-  "training_time_ms": 607.08,
+  "training_time_ms": 383.8,
   "csv_path": "D:\\STUDY\\cat\\annomoly\\training-data.csv",
-  "anomaly_rate_pct": 10.0,
+  "anomaly_rate_pct": 0.0,
   "metrics": {
-    "precision": 0.8207,
-    "recall": 0.7628,
-    "f1": 0.7907,
-    "accuracy": 0.958,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "accuracy": 0.9615,
     "confusion_matrix": [
       [
-        1318,
-        26
+        25,
+        1
       ],
       [
-        37,
-        119
+        0,
+        0
       ]
     ],
-    "n_test": 1500,
-    "n_test_anomalies": 156,
-    "n_predicted_anomalies": 145,
-    "decision_threshold": 0.0005446871962897026
+    "n_test": 26,
+    "n_test_anomalies": 0,
+    "n_predicted_anomalies": 1,
+    "decision_threshold": -0.04571630511970631
   }
 }

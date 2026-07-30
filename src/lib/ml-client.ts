@@ -15,24 +15,12 @@ const REQUEST_TIMEOUT_MS = 3000; // 3 s — must not block ingestion
 // ── Types (mirrors python-ml/schemas/telemetry.py) ───────────────────────────
 
 export interface MLFeatureVector {
-  // Raw sensor values
-  fuelLevel:              number;
-  engineHours:            number;
-  idleHours:              number;
-  speed:                  number;
-  engineTemperature:      number;
-  hydraulicPressure:      number;
-  batteryVoltage:         number;
-  loadPercentage:         number;
-  vibrationLevel:         number;
-  // Engineered deltas
-  fuelDelta:              number;
-  engineHoursDelta:       number;
-  idleHoursDelta:         number;
-  // Binary / spatial
-  engineOn:               number;  // 1 = ON, 0 = OFF
-  distanceFromSiteCenter: number;
-  // Context
+  engineHoursPerDay:      number;
+  idleHoursPerDay:        number;
+  rentalDays:             number;
+  hasOperator:            number;
+  hasSite:                number;
+  idleRatio:              number;
   equipmentId?:           string;
   equipmentType?:         string;
 }
