@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
 
 // ─── Types ────────────────────────────────────────────────
 interface AnomalyAlert {
@@ -30,45 +31,14 @@ interface TelemetrySnapshot {
   recordedAt: string | null;
 }
 
-type SeverityFilter = 'ALL' | 'CRITICAL' | 'WARNING' | 'INFO';
-
-// ─── Helpers ─────────────────────────────────────────────
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-IN', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  });
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  });
-}
-
-function formatAnomalyType(type: string): string {
-  return type.replace(/_/g, ' ');
-}
-
-function getStatusColor(status: string | null): string {
-  switch (status) {
-    case 'RENTED':      return 'RENTED';
-    case 'AVAILABLE':   return 'AVAILABLE';
-    case 'MAINTENANCE': return 'MAINTENANCE';
-    default:            return 'AVAILABLE';
-  }
-}
-
-// ─── Component ───────────────────────────────────────────
 export default function DashboardPage() {
   const [alerts, setAlerts] = useState<AnomalyAlert[]>([]);
   const [fleet, setFleet] = useState<TelemetrySnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<SeverityFilter>('ALL');
-  const [showResolved, setShowResolved] = useState(false);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAssetId, setSelectedAssetId] = useState('NX-8802');
 
   // ── Simulator state ──────────────────────────────────
   const [activeScenario, setActiveScenario] = useState<string>('normal');
@@ -83,8 +53,8 @@ export default function DashboardPage() {
   const [engineHours, setEngineHours] = useState(452.4);
   const [idleHours, setIdleHours] = useState(12.5);
   const [speed, setSpeed] = useState(12);
-  const [engineTemp, setEngineTemp] = useState(83);
-  const [hydraulicPressure, setHydraulicPressure] = useState(165);
+  const [engineTemp, setEngineTemp] = useState(112.4);
+  const [hydraulicPressure, setHydraulicPressure] = useState(42.1);
   const [batteryVoltage, setBatteryVoltage] = useState(13.6);
   const [loadPercentage, setLoadPercentage] = useState(60);
   const [vibrationLevel, setVibrationLevel] = useState(2.5);
@@ -94,42 +64,43 @@ export default function DashboardPage() {
   const [longitude, setLongitude] = useState(76.93531);
 
   // ── Data fetching ────────────────────────────────────
-  const fetchAlerts = useCallback(async (resolved = false) => {
-    const res = await fetch(`/api/alerts?resolved=${resolved}&limit=100`);
-    const data = await res.json();
-    if (data.success) setAlerts(data.alerts ?? []);
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/alerts?resolved=false&limit=100`);
+      const data = await res.json();
+      if (data.success) setAlerts(data.alerts ?? []);
+    } catch (e) {
+      console.error('Failed to fetch alerts', e);
+    }
   }, []);
 
   const fetchFleet = useCallback(async () => {
-    const res = await fetch('/api/telemetry');
-    const data = await res.json();
-    if (data.success) setFleet(data.snapshot ?? []);
+    try {
+      const res = await fetch('/api/telemetry');
+      const data = await res.json();
+      if (data.success) setFleet(data.snapshot ?? []);
+    } catch (e) {
+      console.error('Failed to fetch telemetry', e);
+    }
   }, []);
 
   const refresh = useCallback(async (manual = false) => {
     if (manual) setRefreshing(true);
     try {
-      await Promise.all([fetchAlerts(showResolved), fetchFleet()]);
-      setLastUpdated(new Date());
+      await Promise.all([fetchAlerts(), fetchFleet()]);
     } finally {
       if (manual) setRefreshing(false);
       setLoading(false);
     }
-  }, [fetchAlerts, fetchFleet, showResolved]);
+  }, [fetchAlerts, fetchFleet]);
 
-  // Initial load
   useEffect(() => { refresh(); }, []);
 
-  // Auto-refresh every 5s
   useEffect(() => {
     const interval = setInterval(() => refresh(), 5000);
     return () => clearInterval(interval);
   }, [refresh]);
 
-  // Re-fetch when resolved filter changes
-  useEffect(() => { fetchAlerts(showResolved); }, [showResolved, fetchAlerts]);
-
-  // ── Resolve alert ────────────────────────────────────
   const resolveAlert = async (alertId: number) => {
     setResolvingId(alertId);
     try {
@@ -138,153 +109,12 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ alertId }),
       });
-      setAlerts((prev) =>
-        prev.map((a) =>
-          a.alertId === alertId
-            ? { ...a, isResolved: true, resolvedAt: new Date().toISOString() }
-            : a
-        )
-      );
+      setAlerts((prev) => prev.filter((a) => a.alertId !== alertId));
     } finally {
       setResolvingId(null);
     }
   };
 
-  // ── Load scenario preset ─────────────────────────────
-  const loadPreset = (name: string) => {
-    setActiveScenario(name);
-    const presets: Record<string, any> = {
-      normal: {
-        equipmentId: 'CAT-EX-1001',
-        equipmentType: 'Excavator',
-        engineStatus: 'ON',
-        fuelLevel: 85.0,
-        engineHours: 452.4,
-        idleHours: 12.5,
-        speed: 12,
-        engineTemperature: 83,
-        hydraulicPressure: 165,
-        batteryVoltage: 13.6,
-        loadPercentage: 60,
-        vibrationLevel: 2.5,
-        rentalStatus: 'Working',
-        operatorId: 'OP101',
-        latitude: 11.02453,
-        longitude: 76.93531,
-      },
-      overheat: {
-        equipmentId: 'CAT-EX-1001',
-        equipmentType: 'Excavator',
-        engineStatus: 'ON',
-        fuelLevel: 72.0,
-        engineHours: 453.1,
-        idleHours: 12.5,
-        speed: 15,
-        engineTemperature: 112, // Engine overheat threshold is 105
-        hydraulicPressure: 210,
-        batteryVoltage: 13.1,
-        loadPercentage: 92,
-        vibrationLevel: 8.5,
-        rentalStatus: 'Working',
-        operatorId: 'OP101',
-        latitude: 11.02453,
-        longitude: 76.93531,
-      },
-      vibration: {
-        equipmentId: 'CAT-EX-1001',
-        equipmentType: 'Excavator',
-        engineStatus: 'ON',
-        fuelLevel: 68.0,
-        engineHours: 453.5,
-        idleHours: 12.5,
-        speed: 8,
-        engineTemperature: 98,
-        hydraulicPressure: 220,
-        batteryVoltage: 13.2,
-        loadPercentage: 95, // vibration trigger needs load >= 90 and vib > 15
-        vibrationLevel: 22.4, // severe vibration threshold
-        rentalStatus: 'Working',
-        operatorId: 'OP101',
-        latitude: 11.02453,
-        longitude: 76.93531,
-      },
-      fuel_theft: {
-        equipmentId: 'CAT-EX-1001',
-        equipmentType: 'Excavator',
-        engineStatus: 'OFF',
-        fuelLevel: 15.0, // fuel drop > 10%
-        engineHours: 452.4,
-        idleHours: 12.5,
-        speed: 0,
-        engineTemperature: 35,
-        hydraulicPressure: 10,
-        batteryVoltage: 12.4,
-        loadPercentage: 0,
-        vibrationLevel: 0.2,
-        rentalStatus: 'Working',
-        operatorId: 'OP101',
-        latitude: 11.02453,
-        longitude: 76.93531,
-      },
-      geofence: {
-        equipmentId: 'CAT-EX-1001',
-        equipmentType: 'Excavator',
-        engineStatus: 'ON',
-        fuelLevel: 81.0,
-        engineHours: 454.0,
-        idleHours: 12.5,
-        speed: 22,
-        engineTemperature: 85,
-        hydraulicPressure: 170,
-        batteryVoltage: 13.5,
-        loadPercentage: 55,
-        vibrationLevel: 2.1,
-        rentalStatus: 'Working',
-        operatorId: 'OP101',
-        latitude: 11.15000, // outside geofence radius
-        longitude: 76.80000,
-      },
-      unassigned: {
-        equipmentId: 'CAT-EX-1001',
-        equipmentType: 'Excavator',
-        engineStatus: 'ON',
-        fuelLevel: 84.5,
-        engineHours: 452.8,
-        idleHours: 12.5,
-        speed: 5,
-        engineTemperature: 78,
-        hydraulicPressure: 150,
-        batteryVoltage: 13.6,
-        loadPercentage: 40,
-        vibrationLevel: 1.8,
-        rentalStatus: 'Working',
-        operatorId: '', // Engine on, no operator
-        latitude: 11.02453,
-        longitude: 76.93531,
-      },
-    };
-
-    const p = presets[name];
-    if (!p) return;
-    setEqId(p.equipmentId);
-    setEqType(p.equipmentType);
-    setEngineStatus(p.engineStatus);
-    setFuelLevel(p.fuelLevel);
-    setEngineHours(p.engineHours);
-    setIdleHours(p.idleHours);
-    setSpeed(p.speed);
-    setEngineTemp(p.engineTemperature);
-    setHydraulicPressure(p.hydraulicPressure);
-    setBatteryVoltage(p.batteryVoltage);
-    setLoadPercentage(p.loadPercentage);
-    setVibrationLevel(p.vibrationLevel);
-    setRentalStatus(p.rentalStatus);
-    setOperatorId(p.operatorId);
-    setLatitude(p.latitude);
-    setLongitude(p.longitude);
-  };
-
-  // ── Ingest Simulation Telemetry ───────────────────────
   const handleSimulateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSimulating(true);
@@ -328,504 +158,363 @@ export default function DashboardPage() {
     }
   };
 
-  // ── Derived stats ─────────────────────────────────────
-  const activeAlerts    = alerts.filter((a) => !a.isResolved);
-  const criticalAlerts  = activeAlerts.filter((a) => a.severity === 'CRITICAL');
-  const idleEquipment   = fleet.filter((f) => f.status === 'AVAILABLE');
-
-  const filteredAlerts = activeAlerts.filter(
-    (a) => filter === 'ALL' || a.severity === filter
-  );
-
   return (
-    <div className="dashboard animate-in">
-
-      {/* ── Header ── */}
-      <header className="dashboard-header">
-        <div className="header-brand">
-          <div className="header-logo">CAT</div>
-          <div>
-            <div className="header-title">Fleet Anomaly Monitor</div>
-            <div className="header-subtitle">
-              Smart Rental Tracking · Real-Time Detection ·{' '}
-              {lastUpdated ? `Last updated: ${formatTime(lastUpdated.toISOString())}` : 'Connecting...'}
+    <div className="bg-surface text-on-surface min-h-screen flex overflow-hidden w-full font-sans">
+      <Sidebar />
+      
+      {/* Main Content Canvas */}
+      <main className="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
+        
+        {/* Top Navigation Bar */}
+        <header className="flex justify-between items-center px-margin_desktop w-full h-16 border-b border-outline-variant bg-surface sticky top-0 z-50">
+          <div className="flex items-center gap-6">
+            <h2 className="font-headline-lg text-title-md font-bold text-primary tracking-tight">AI Anomaly Detection</h2>
+            <div className="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-lg border border-outline-variant">
+              <span className="material-symbols-outlined text-primary text-sm">search</span>
+              <input
+                className="bg-transparent border-none focus:ring-0 text-body-md w-64 p-0 text-on-surface placeholder:text-on-surface-variant focus:outline-none"
+                placeholder="Filter by Asset ID or Fleet..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
-        </div>
-        <div className="header-right">
-          <Link to="/ml-lab" className="nav-link-btn">
-            🌲 ML Lab
-          </Link>
-          <div className="live-badge">
-            <div className="live-dot" />
-            Live
-          </div>
-          <button
-            className={`refresh-btn ${refreshing ? 'spinning' : ''}`}
-            onClick={() => refresh(true)}
-            title="Refresh now"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M8 16H3v5" />
-            </svg>
-            Refresh
-          </button>
-        </div>
-      </header>
 
-      {/* ── Stats Bar ── */}
-      <div className="stats-bar">
-        <div className="stat-card success">
-          <div className="stat-icon success">🚛</div>
-          <div className="stat-content">
-            <div className="stat-value">{fleet.length}</div>
-            <div className="stat-label">Total Equipment</div>
-          </div>
-        </div>
-        <div className="stat-card critical">
-          <div className="stat-icon critical">🚨</div>
-          <div className="stat-content">
-            <div className="stat-value">{activeAlerts.length}</div>
-            <div className="stat-label">Active Alerts</div>
-          </div>
-        </div>
-        <div className="stat-card warning">
-          <div className="stat-icon warning">⚠️</div>
-          <div className="stat-content">
-            <div className="stat-value">{criticalAlerts.length}</div>
-            <div className="stat-label">Critical Alerts</div>
-          </div>
-        </div>
-        <div className="stat-card info">
-          <div className="stat-icon info">⏸️</div>
-          <div className="stat-content">
-            <div className="stat-value">{idleEquipment.length}</div>
-            <div className="stat-label">Idle / Available</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Alerts Panel ── */}
-      <section>
-        <div className="section-header">
-          <div className="section-title">
-            🚨 Anomaly Alerts
-            <span>{filteredAlerts.length} {showResolved ? 'resolved' : 'active'}</span>
-          </div>
-          <div className="section-actions">
-            <div className="filter-tabs">
-              {(['ALL', 'CRITICAL', 'WARNING', 'INFO'] as SeverityFilter[]).map((f) => (
-                <button
-                  key={f}
-                  className={`filter-tab ${filter === f ? 'active' : ''}`}
-                  onClick={() => setFilter(f)}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-4">
             <button
-              className={`filter-tab ${showResolved ? 'active' : ''}`}
-              onClick={() => setShowResolved((v) => !v)}
-              style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}
+              onClick={() => refresh(true)}
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-secondary cursor-pointer"
+              title="Refresh Telemetry"
             >
-              {showResolved ? '✅ Resolved' : '⏳ Active'}
+              <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>sync</span>
             </button>
-          </div>
-        </div>
-
-        <div className="alerts-panel">
-          <div className="alerts-table-wrapper">
-            <table className="alerts-table">
-              <thead>
-                <tr>
-                  <th>Equipment</th>
-                  <th>Severity</th>
-                  <th>Anomaly Type</th>
-                  <th>Description</th>
-                  <th>Recommendation</th>
-                  <th>Trigger</th>
-                  <th>Site</th>
-                  <th>Detected</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr className="loading-row">
-                    <td colSpan={9}>⏳ Loading alerts...</td>
-                  </tr>
-                ) : filteredAlerts.length === 0 ? (
-                  <tr>
-                    <td colSpan={9}>
-                      <div className="empty-state">
-                        <div className="empty-state-icon">✅</div>
-                        <div className="empty-state-title">No {filter !== 'ALL' ? filter.toLowerCase() : ''} alerts</div>
-                        <div className="empty-state-desc">
-                          All equipment is operating within normal parameters.
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAlerts.map((alert) => (
-                    <tr key={alert.alertId} className={alert.isResolved ? 'resolved' : ''}>
-                      <td>
-                        <div className="equipment-cell">
-                          <div className="equipment-id">{alert.equipmentId}</div>
-                          <div className="equipment-type">{alert.equipmentType ?? '—'}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`severity-badge ${alert.severity}`}>
-                          <span className="badge-dot" />
-                          {alert.severity}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="anomaly-type-tag">
-                          {formatAnomalyType(alert.anomalyType)}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="alert-description">{alert.description}</div>
-                      </td>
-                      <td>
-                        <div className="alert-recommendation">{alert.recommendation}</div>
-                      </td>
-                      <td>
-                        <div className="trigger-value">{alert.triggerValue ?? '—'}</div>
-                      </td>
-                      <td>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                          {alert.siteId ?? 'N/A'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="timestamp">
-                          <div>{formatDate(alert.detectedAt)}</div>
-                          <div>{formatTime(alert.detectedAt)}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <button
-                          className="resolve-btn"
-                          disabled={alert.isResolved || resolvingId === alert.alertId}
-                          onClick={() => resolveAlert(alert.alertId)}
-                        >
-                          {resolvingId === alert.alertId ? '...' : alert.isResolved ? 'Resolved' : 'Resolve'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Fleet Simulator & ML Testing Panel ── */}
-      <section className="simulator-card">
-        <div className="simulator-title">
-          🧪 Fleet Simulator & ML Testing Panel
-        </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0' }}>
-          Instantly publish custom telemetry payloads. Checks deterministic boundaries and invokes the Python Isolation Forest ML model in real-time.
-        </p>
-
-        {/* Preset scenario tabs */}
-        <div className="scenario-buttons">
-          <button
-            type="button"
-            className={`scenario-btn ${activeScenario === 'normal' ? 'active' : ''}`}
-            onClick={() => loadPreset('normal')}
-          >
-            🟢 Normal Excavator
-          </button>
-          <button
-            type="button"
-            className={`scenario-btn ${activeScenario === 'overheat' ? 'active' : ''}`}
-            onClick={() => loadPreset('overheat')}
-          >
-            🔥 Overheat Anomaly (Rule + ML)
-          </button>
-          <button
-            type="button"
-            className={`scenario-btn ${activeScenario === 'vibration' ? 'active' : ''}`}
-            onClick={() => loadPreset('vibration')}
-          >
-            ⚡ Severe Vibration (Rule + ML)
-          </button>
-          <button
-            type="button"
-            className={`scenario-btn ${activeScenario === 'fuel_theft' ? 'active' : ''}`}
-            onClick={() => loadPreset('fuel_theft')}
-          >
-            ⛽ Fuel Theft Anomaly (Rule + ML)
-          </button>
-          <button
-            type="button"
-            className={`scenario-btn ${activeScenario === 'geofence' ? 'active' : ''}`}
-            onClick={() => loadPreset('geofence')}
-          >
-            🗺️ Geofence Violation (Rule)
-          </button>
-          <button
-            type="button"
-            className={`scenario-btn ${activeScenario === 'unassigned' ? 'active' : ''}`}
-            onClick={() => loadPreset('unassigned')}
-          >
-            👤 Unassigned Operator (Rule)
-          </button>
-        </div>
-
-        {/* Form controls */}
-        <form onSubmit={handleSimulateSubmit} className="simulator-form-grid">
-          <div className="form-group">
-            <label>Equipment ID</label>
-            <input type="text" value={eqId} onChange={(e) => setEqId(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label>Equipment Type</label>
-            <select value={eqType} onChange={(e) => setEqType(e.target.value)}>
-              <option value="Excavator">Excavator</option>
-              <option value="Bulldozer">Bulldozer</option>
-              <option value="Dump Truck">Dump Truck</option>
-              <option value="Crane">Crane</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Engine Status</label>
-            <select value={engineStatus} onChange={(e) => setEngineStatus(e.target.value)}>
-              <option value="ON">ON</option>
-              <option value="OFF">OFF</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Operator ID</label>
-            <input type="text" value={operatorId} onChange={(e) => setOperatorId(e.target.value)} placeholder="None" />
-          </div>
-
-          <div className="form-group">
-            <label>
-              Temperature
-              <span className="val">{engineTemp} °C</span>
-            </label>
-            <input
-              type="range"
-              min="20"
-              max="150"
-              value={engineTemp}
-              onChange={(e) => setEngineTemp(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label>
-              Vibration Level
-              <span className="val">{vibrationLevel} mm/s</span>
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="35"
-              step="0.1"
-              value={vibrationLevel}
-              onChange={(e) => setVibrationLevel(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label>
-              Fuel Level
-              <span className="val">{fuelLevel} %</span>
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={fuelLevel}
-              onChange={(e) => setFuelLevel(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label>
-              Engine Load
-              <span className="val">{loadPercentage} %</span>
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={loadPercentage}
-              onChange={(e) => setLoadPercentage(Number(e.target.value))}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Hydraulic Pressure (PSI)</label>
-            <input type="number" value={hydraulicPressure} onChange={(e) => setHydraulicPressure(Number(e.target.value))} />
-          </div>
-          <div className="form-group">
-            <label>Battery Voltage (V)</label>
-            <input type="number" step="0.1" value={batteryVoltage} onChange={(e) => setBatteryVoltage(Number(e.target.value))} />
-          </div>
-          <div className="form-group">
-            <label>Latitude</label>
-            <input type="number" step="0.00001" value={latitude} onChange={(e) => setLatitude(Number(e.target.value))} />
-          </div>
-          <div className="form-group">
-            <label>Longitude</label>
-            <input type="number" step="0.00001" value={longitude} onChange={(e) => setLongitude(Number(e.target.value))} />
-          </div>
-        </form>
-
-        <div className="simulator-actions">
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            *Publish simulates MQTT topic telemetry/CAT-EX-1001 (falls back to direct DB/ML ingestion if broker is offline).
-          </div>
-          <button
-            type="submit"
-            onClick={handleSimulateSubmit}
-            disabled={simulating}
-            className="simulator-submit-btn"
-          >
-            {simulating ? 'Processing...' : '🚀 Ingest & Test Telemetry'}
-          </button>
-        </div>
-
-        {/* Results output */}
-        {simulationResult && (
-          <div className="simulator-results-panel">
-            <div className="result-header">
-              <span>Simulation Ingestion Report</span>
-              <span className={`result-badge ${simulationResult.success ? 'normal' : 'anomaly'}`}>
-                {simulationResult.success ? 'Success' : 'Ingestion Error'}
-              </span>
-            </div>
-
-            <div className="result-details">
-              <div className="result-field">
-                <span className="result-field-label">MQTT Broker Pub</span>
-                <span className="result-field-value">
-                  {simulationResult.mqttPublished ? '🟢 Online & Sent' : '🔴 Offline (Direct fallback)'}
-                </span>
-              </div>
-              <div className="result-field">
-                <span className="result-field-label">Parser & Zod Status</span>
-                <span className="result-field-value">
-                  {simulationResult.success ? '✅ Passed Validation' : `❌ Validation Failed: ${simulationResult.error}`}
-                </span>
-              </div>
-              <div className="result-field">
-                <span className="result-field-label">Prisma Neon DB Sync</span>
-                <span className="result-field-value">
-                  {simulationResult.success && simulationResult.result?.equipmentId ? 'Stored to Neon DB' : 'Skipped / DB Error'}
-                </span>
-              </div>
-              <div className="result-field">
-                <span className="result-field-label">Anomaly Pipeline</span>
-                <span className="result-field-value" style={{ color: 'var(--cat-yellow)', fontWeight: 'bold' }}>
-                  Triggered Hybrid Checks
-                </span>
-              </div>
+            <div className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-secondary cursor-pointer">
+              <span className="material-symbols-outlined">account_circle</span>
             </div>
           </div>
-        )}
-      </section>
+        </header>
 
-      {/* ── Fleet Status Grid ── */}
-      <section>
-        <div className="section-header">
-          <div className="section-title">
-            🚛 Fleet Status
-            <span>{fleet.length} machines</span>
-          </div>
-        </div>
-
-        {fleet.length === 0 && !loading ? (
-          <div className="empty-state" style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
-            <div className="empty-state-icon">📡</div>
-            <div className="empty-state-title">No telemetry data yet</div>
-            <div className="empty-state-desc">
-              Start the MQTT publisher and ingestion service to see live fleet data here.
-            </div>
-          </div>
-        ) : (
-          <div className="fleet-grid">
-            {fleet.map((eq) => {
-              const fuelPct = eq.fuelLevel ? Math.min(100, parseFloat(eq.fuelLevel)) : 0;
-              const alertsForEq = activeAlerts.filter((a) => a.equipmentId === String(eq.equipmentId));
-              const hasCritical = alertsForEq.some((a) => a.severity === 'CRITICAL');
-
-              return (
-                <div
-                  key={eq.equipmentId}
-                  className="fleet-card"
-                  style={{
-                    ['--card-accent' as any]: hasCritical ? 'var(--severity-critical)' : 'var(--cat-yellow)',
-                    borderColor: hasCritical ? 'var(--severity-critical-border)' : undefined,
-                  }}
-                >
-                  <div className="fleet-card-header">
-                    <div>
-                      <div className="fleet-eq-id">EQ-{eq.equipmentId}</div>
-                      <div className="fleet-eq-type">{eq.equipmentType ?? 'Unknown'}</div>
-                    </div>
-                    <span className={`status-pill ${getStatusColor(eq.status)}`}>
-                      {eq.status ?? 'UNKNOWN'}
-                    </span>
+        <div className="flex-1 flex overflow-hidden">
+          {/* Center Analysis Area */}
+          <section className="flex-1 overflow-y-auto p-8 flex flex-col gap-gutter custom-scrollbar">
+            
+            {/* Telemetry Pipeline Architecture Header */}
+            <div className="bg-surface-container border border-outline-variant rounded-xl p-6 flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="font-label-md text-[10px] uppercase text-primary mb-1">Architecture Status</span>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-surface-container-lowest border border-outline-variant rounded">
+                    <span className="w-2 h-2 rounded-full bg-[#2E7D32]" />
+                    <span className="font-label-md text-[12px] uppercase">MQTT Broker</span>
                   </div>
-
-                  <div className="fleet-metrics">
-                    <div className="fleet-metric">
-                      <div className="fleet-metric-label">Runtime Hrs</div>
-                      <div className="fleet-metric-value">
-                        {eq.runtimeHours ? parseFloat(eq.runtimeHours).toFixed(1) : '—'}
-                      </div>
-                    </div>
-                    <div className="fleet-metric">
-                      <div className="fleet-metric-label">Idle Hrs</div>
-                      <div className="fleet-metric-value">
-                        {eq.idleHours ? parseFloat(eq.idleHours).toFixed(1) : '—'}
-                      </div>
-                    </div>
-                    <div className="fleet-metric">
-                      <div className="fleet-metric-label">Site</div>
-                      <div className="fleet-metric-value" style={{ fontSize: '0.75rem' }}>
-                        {eq.siteName}
-                      </div>
-                    </div>
-                    <div className="fleet-metric">
-                      <div className="fleet-metric-label">Alerts</div>
-                      <div className="fleet-metric-value" style={{ color: hasCritical ? 'var(--severity-critical)' : 'var(--text-secondary)' }}>
-                        {alertsForEq.length > 0 ? `⚠ ${alertsForEq.length}` : '✓ Clear'}
-                      </div>
-                    </div>
+                  <div className="text-outline-variant">
+                    <span className="material-symbols-outlined">arrow_forward</span>
                   </div>
-
-                  <div className="fuel-bar-wrapper">
-                    <div className="fuel-bar-label">
-                      <span>Fuel Consumed</span>
-                      <span>{fuelPct.toFixed(1)} L</span>
-                    </div>
-                    <div className="fuel-bar-track">
-                      <div
-                        className="fuel-bar-fill"
-                        style={{ width: `${Math.min(100, fuelPct)}%` }}
-                      />
-                    </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-surface-container-lowest border border-outline-variant rounded">
+                    <span className="w-2 h-2 rounded-full bg-[#2E7D32]" />
+                    <span className="font-label-md text-[12px] uppercase">Rule Engine</span>
+                  </div>
+                  <div className="text-outline-variant">
+                    <span className="material-symbols-outlined">arrow_forward</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-primary-container border border-primary rounded">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="font-label-md text-[12px] uppercase font-bold text-on-primary-container">Anomaly Engine v4.2</span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+              </div>
 
+              <div className="flex gap-4">
+                <div className="text-right">
+                  <p className="font-label-md text-[10px] uppercase text-on-surface-variant">Throughput</p>
+                  <p className="font-title-md text-xl font-bold">12,402 msg/s</p>
+                </div>
+                <div className="text-right border-l border-outline-variant pl-4">
+                  <p className="font-label-md text-[10px] uppercase text-on-surface-variant">Latency</p>
+                  <p className="font-title-md text-xl font-bold text-tertiary">14ms</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Dimensional Latent Space Visualization */}
+            <div className="grid grid-cols-12 gap-gutter flex-1 min-h-[500px]">
+              <div className="col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl relative overflow-hidden flex flex-col">
+                <div className="absolute top-4 left-6 z-10">
+                  <h3 className="font-title-md text-lg font-bold flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">bubble_chart</span>
+                    Dimensional Latent Space
+                  </h3>
+                  <p className="font-label-md text-[11px] text-on-surface-variant uppercase mt-1">Stochastic Neighbor Embedding Visualization</p>
+                </div>
+
+                <div className="latent-grid w-full h-full relative flex items-center justify-center p-12">
+                  <div className="relative w-full h-full opacity-90">
+                    {/* Normal Clusters */}
+                    <div className="absolute top-[20%] left-[30%] w-32 h-32 bg-primary/10 rounded-full blur-xl pointer-events-none" />
+                    <div className="absolute bottom-[30%] right-[25%] w-40 h-40 bg-tertiary/10 rounded-full blur-xl pointer-events-none" />
+                    
+                    {/* Individual Normal Points */}
+                    <div className="absolute top-[25%] left-[32%] w-2 h-2 rounded-full bg-primary" />
+                    <div className="absolute top-[22%] left-[35%] w-2 h-2 rounded-full bg-primary" />
+                    <div className="absolute top-[28%] left-[38%] w-2 h-2 rounded-full bg-primary" />
+                    <div className="absolute top-[40%] left-[45%] w-2 h-2 rounded-full bg-tertiary" />
+                    <div className="absolute bottom-[35%] right-[28%] w-2 h-2 rounded-full bg-tertiary" />
+
+                    {/* Anomalies (Highlighted) */}
+                    <div className="absolute top-[60%] left-[15%] group cursor-pointer" onClick={() => setSelectedAssetId('NX-8802')}>
+                      <div className="w-4 h-4 rounded-full bg-error animate-ping absolute opacity-75" />
+                      <div className="w-4 h-4 rounded-full bg-error relative border-2 border-white shadow-lg" />
+                      <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-100 shadow-md">
+                        Asset NX-8802 (Pressure)
+                      </div>
+                    </div>
+
+                    <div className="absolute top-[15%] right-[15%] group cursor-pointer" onClick={() => setSelectedAssetId('NX-9124')}>
+                      <div className="w-4 h-4 rounded-full bg-error animate-ping absolute opacity-75" />
+                      <div className="w-4 h-4 rounded-full bg-error relative border-2 border-white shadow-lg" />
+                      <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-100 shadow-md">
+                        Asset NX-9124 (Temp)
+                      </div>
+                    </div>
+
+                    {/* Axis Labels */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 font-label-md text-[10px] text-outline uppercase tracking-widest">Dimension Alpha (Temporal)</div>
+                    <div className="absolute left-4 top-1/2 -rotate-90 origin-left -translate-y-1/2 font-label-md text-[10px] text-outline uppercase tracking-widest">Dimension Beta (Mechanical)</div>
+                  </div>
+                </div>
+
+                <div className="absolute bottom-4 right-6 flex gap-2">
+                  <button className="bg-surface-container px-3 py-1.5 rounded text-[11px] font-bold uppercase border border-outline-variant hover:bg-surface-container-high transition-colors cursor-pointer text-on-surface-variant">2D View</button>
+                  <button className="bg-surface-container px-3 py-1.5 rounded text-[11px] font-bold uppercase border border-outline-variant hover:bg-surface-container-high transition-colors cursor-pointer text-on-surface-variant">3D Mesh</button>
+                  <button className="bg-primary-container px-3 py-1.5 rounded text-[11px] font-bold uppercase border border-primary transition-colors cursor-pointer text-on-primary-container">Latent Legend</button>
+                </div>
+              </div>
+
+              {/* Sidebar: Detection Log */}
+              <div className="col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col overflow-hidden">
+                <div className="p-4 border-b border-outline-variant flex justify-between items-center">
+                  <h3 className="font-title-md text-sm font-bold uppercase tracking-tight">Detection Log</h3>
+                  <span className="bg-error-container text-on-error-container text-[10px] font-black px-2 py-0.5 rounded">
+                    {alerts.length || 2} CRITICAL
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  <div className="p-4 flex flex-col gap-3">
+                    
+                    {/* Log Item 1 */}
+                    <div className="p-3 border border-error bg-error-container/10 rounded-lg cursor-pointer hover:bg-error-container/20 transition-all" onClick={() => setSelectedAssetId('NX-8802')}>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-label-md text-[11px] font-bold text-error uppercase">Hydraulic Failure Risk</span>
+                        <span className="font-label-md text-[10px] text-on-surface-variant">09:42:15</span>
+                      </div>
+                      <p className="font-body-md text-sm font-bold mb-1">Asset: Excavator NX-8802</p>
+                      <p className="font-body-md text-[12px] text-on-surface-variant">Deviation detected in Oil Pressure vs. RPM baseline. Probability: 89.2%</p>
+                    </div>
+
+                    {/* Log Item 2 */}
+                    <div className="p-3 border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container transition-all" onClick={() => setSelectedAssetId('NX-9124')}>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-label-md text-[11px] font-bold text-tertiary uppercase">Thermal Anomaly</span>
+                        <span className="font-label-md text-[10px] text-on-surface-variant">09:38:02</span>
+                      </div>
+                      <p className="font-body-md text-sm font-bold mb-1">Asset: Truck NX-9124</p>
+                      <p className="font-body-md text-[12px] text-on-surface-variant">Bearing temperature +15°C above expected operating curve.</p>
+                    </div>
+
+                    {/* Log Item 3 */}
+                    <div className="p-3 border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container transition-all">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-label-md text-[11px] font-bold text-secondary uppercase">Sensor Drift</span>
+                        <span className="font-label-md text-[10px] text-on-surface-variant">09:12:44</span>
+                      </div>
+                      <p className="font-body-md text-sm font-bold mb-1">Asset: Generator G-002</p>
+                      <p className="font-body-md text-[12px] text-on-surface-variant">Vibration sensor SN-442 reporting inconsistent null-state values.</p>
+                    </div>
+
+                  </div>
+                </div>
+                <button className="m-4 bg-surface-container py-2 rounded font-label-md text-[12px] uppercase font-bold border border-outline-variant hover:bg-surface-container-high cursor-pointer text-on-surface-variant">
+                  Export Log Archive
+                </button>
+              </div>
+            </div>
+
+            {/* Detail View Section */}
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-surface-container border border-outline-variant rounded flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-3xl">construction</span>
+                  </div>
+                  <div>
+                    <h3 className="font-title-md text-xl font-bold">In-Depth Analysis: {selectedAssetId}</h3>
+                    <p className="font-label-md text-[12px] text-on-surface-variant uppercase">Last Update: Real-time Streaming</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <span className="px-3 py-1 bg-[#ED6C02] text-white font-label-md text-[10px] rounded uppercase font-bold">Predictive Maintenance Required</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-8">
+                {/* Chart: Temperature */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-end">
+                    <span className="font-label-md text-[12px] uppercase text-on-surface-variant">Engine Temperature (°C)</span>
+                    <span className="font-title-md text-lg font-black text-on-surface">112.4</span>
+                  </div>
+                  <div className="h-24 flex items-end gap-1">
+                    <div className="flex-1 bg-primary/20 h-[60%] rounded-t-sm" />
+                    <div className="flex-1 bg-primary/20 h-[65%] rounded-t-sm" />
+                    <div className="flex-1 bg-primary/20 h-[70%] rounded-t-sm" />
+                    <div className="flex-1 bg-primary/20 h-[68%] rounded-t-sm" />
+                    <div className="flex-1 bg-primary/20 h-[75%] rounded-t-sm" />
+                    <div className="flex-1 bg-[#ED6C02] h-[85%] rounded-t-sm" />
+                    <div className="flex-1 bg-[#ba1a1a] h-[95%] rounded-t-sm animate-pulse" />
+                    <div className="flex-1 bg-[#ba1a1a] h-[92%] rounded-t-sm" />
+                  </div>
+                </div>
+
+                {/* Chart: RPM */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-end">
+                    <span className="font-label-md text-[12px] uppercase text-on-surface-variant">Core RPM (x1000)</span>
+                    <span className="font-title-md text-lg font-black text-on-surface">18.2</span>
+                  </div>
+                  <div className="h-24 flex items-end gap-1">
+                    <div className="flex-1 bg-tertiary/20 h-[80%] rounded-t-sm" />
+                    <div className="flex-1 bg-tertiary/20 h-[82%] rounded-t-sm" />
+                    <div className="flex-1 bg-tertiary/20 h-[78%] rounded-t-sm" />
+                    <div className="flex-1 bg-tertiary/20 h-[80%] rounded-t-sm" />
+                    <div className="flex-1 bg-tertiary/20 h-[81%] rounded-t-sm" />
+                    <div className="flex-1 bg-tertiary/20 h-[79%] rounded-t-sm" />
+                    <div className="flex-1 bg-tertiary/20 h-[82%] rounded-t-sm" />
+                    <div className="flex-1 bg-tertiary/20 h-[80%] rounded-t-sm" />
+                  </div>
+                </div>
+
+                {/* Chart: Oil Pressure */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-end">
+                    <span className="font-label-md text-[12px] uppercase text-on-surface-variant">Oil Pressure (PSI)</span>
+                    <span className="font-title-md text-lg font-black text-error">42.1</span>
+                  </div>
+                  <div className="h-24 flex items-end gap-1">
+                    <div className="flex-1 bg-on-surface-variant/20 h-[90%] rounded-t-sm" />
+                    <div className="flex-1 bg-on-surface-variant/20 h-[88%] rounded-t-sm" />
+                    <div className="flex-1 bg-on-surface-variant/20 h-[85%] rounded-t-sm" />
+                    <div className="flex-1 bg-[#ba1a1a] h-[60%] rounded-t-sm" />
+                    <div className="flex-1 bg-[#ba1a1a] h-[55%] rounded-t-sm" />
+                    <div className="flex-1 bg-[#ba1a1a] h-[50%] rounded-t-sm" />
+                    <div className="flex-1 bg-[#ba1a1a] h-[45%] rounded-t-sm animate-pulse" />
+                    <div className="flex-1 bg-[#ba1a1a] h-[40%] rounded-t-sm" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Recommendation Banner */}
+            <div className="bg-primary-container text-on-primary-container p-6 rounded-xl border-2 border-primary flex items-center justify-between shadow-lg mb-4">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-full flex items-center justify-center border border-white/50">
+                  <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>psychology</span>
+                </div>
+                <div>
+                  <h4 className="font-title-md text-lg font-black uppercase">AI Intervention Recommendation</h4>
+                  <p className="font-body-md text-on-primary-fixed-variant max-w-2xl mt-1">
+                    Based on latent space deviation, <strong>{selectedAssetId}</strong> is exhibiting symptoms of early-stage hydraulic pump cavitation. Recommend immediate shutdown and seal replacement within 12 operating hours to prevent catastrophic failure.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button className="bg-on-primary-container text-white px-6 py-3 rounded-xl font-bold uppercase text-[12px] hover:opacity-90 transition-all cursor-pointer">
+                  Schedule Repair
+                </button>
+                <button className="bg-transparent border-2 border-on-primary-container text-on-primary-container px-6 py-3 rounded-xl font-bold uppercase text-[12px] hover:bg-on-primary-container hover:text-white transition-all cursor-pointer">
+                  Ignore Alert
+                </button>
+              </div>
+            </div>
+
+            {/* Ingest Simulation Form Card */}
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-xs flex flex-col gap-4">
+              <h3 className="font-title-md text-base font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">tune</span>
+                Live Telemetry Ingestion Simulator & Rule Tester
+              </h3>
+
+              <form onSubmit={handleSimulateSubmit} className="grid grid-cols-4 gap-4 text-xs">
+                <div>
+                  <label className="font-bold block mb-1 text-on-surface-variant">Equipment ID</label>
+                  <input
+                    type="text"
+                    value={eqId}
+                    onChange={(e) => setEqId(e.target.value)}
+                    className="w-full p-2 border border-outline-variant bg-surface-container-low rounded focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold block mb-1 text-on-surface-variant">Equipment Type</label>
+                  <select
+                    value={eqType}
+                    onChange={(e) => setEqType(e.target.value)}
+                    className="w-full p-2 border border-outline-variant bg-surface-container-low rounded focus:outline-none"
+                  >
+                    <option value="Excavator">Excavator</option>
+                    <option value="Bulldozer">Bulldozer</option>
+                    <option value="Dump Truck">Dump Truck</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold block mb-1 text-on-surface-variant">Engine Temp (°C)</label>
+                  <input
+                    type="number"
+                    value={engineTemp}
+                    onChange={(e) => setEngineTemp(Number(e.target.value))}
+                    className="w-full p-2 border border-outline-variant bg-surface-container-low rounded focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold block mb-1 text-on-surface-variant">Oil Pressure (PSI)</label>
+                  <input
+                    type="number"
+                    value={hydraulicPressure}
+                    onChange={(e) => setHydraulicPressure(Number(e.target.value))}
+                    className="w-full p-2 border border-outline-variant bg-surface-container-low rounded focus:outline-none"
+                  />
+                </div>
+
+                <div className="col-span-4 flex justify-between items-center pt-2">
+                  <p className="text-[11px] text-on-surface-variant">
+                    *Publishes payload to MQTT topic telemetry/CAT-EX-1001 and triggers hybrid isolation evaluation.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={simulating}
+                    className="bg-primary text-white px-6 py-2.5 rounded-lg font-bold uppercase text-xs hover:opacity-90 cursor-pointer shadow-xs"
+                  >
+                    {simulating ? 'Ingesting...' : '🚀 Ingest Payload'}
+                  </button>
+                </div>
+              </form>
+
+              {simulationResult && (
+                <div className="bg-surface-container-low border border-outline-variant p-4 rounded-lg text-xs">
+                  <p className="font-bold text-primary">Ingestion Result: {simulationResult.success ? '✅ Success' : '❌ Failed'}</p>
+                </div>
+              )}
+            </div>
+
+          </section>
+        </div>
+      </main>
     </div>
   );
 }

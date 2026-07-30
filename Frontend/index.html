@@ -1,12 +1,50 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CAT Fleet Anomaly Monitor</title>
+    <title>Nexus Fleet | AI Anomaly Detection</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              background: "#fff8f0",
+              surface: "#fff8f0",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#fdf3e1",
+              "surface-container": "#f7eddb",
+              "surface-container-high": "#f1e7d5",
+              "surface-container-highest": "#ebe1d0",
+              primary: "#745b00",
+              "primary-container": "#ffcd11",
+              "on-primary-container": "#6f5800",
+              "on-primary-fixed-variant": "#574400",
+              "on-surface": "#1f1b10",
+              "on-surface-variant": "#4e4632",
+              outline: "#80765f",
+              "outline-variant": "#d1c5ab",
+              error: "#ba1a1a",
+              "error-container": "#ffdad6",
+              "on-error-container": "#93000a",
+              tertiary: "#006874"
+            },
+            fontFamily: {
+              sans: ["Inter", "sans-serif"]
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-surface text-on-surface min-h-screen flex overflow-hidden font-sans">
+    <div id="root" class="w-full h-full flex"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
