@@ -31,6 +31,8 @@ def root():
             "checkout_scan": "POST /api/v1/checkouts/scan",
             "dealers_equipment": "GET /api/v1/dealers/equipment",
             "live_fleet": "GET /api/v1/live/fleet",
+            "analytics_usage": "GET /api/v1/analytics/usage/summary",
+            "analytics_utilization": "GET /api/v1/analytics/utilization",
             "docs": "GET /docs",
         },
     }
