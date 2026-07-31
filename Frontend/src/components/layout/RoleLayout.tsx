@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { useLayoutEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import AppSidebar from './AppSidebar';
 import MobileBottomNav from './MobileBottomNav';
 import InstallAppBanner from '../pwa/InstallAppBanner';
+import CachedOutlet from './CachedOutlet';
 
 /**
  * Viewport-locked shell: sidebar + header stay put; only <main> scrolls.
@@ -11,11 +12,16 @@ import InstallAppBanner from '../pwa/InstallAppBanner';
  */
 export default function RoleLayout() {
   const { pathname } = useLocation();
+  const scrollPositions = useRef(new Map<string, number>());
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const main = document.getElementById('app-scroll-main');
-    main?.scrollTo({ top: 0 });
+    main?.scrollTo({ top: scrollPositions.current.get(pathname) ?? 0 });
     main?.focus({ preventScroll: true });
+
+    return () => {
+      if (main) scrollPositions.current.set(pathname, main.scrollTop);
+    };
   }, [pathname]);
 
   return (
@@ -38,7 +44,7 @@ export default function RoleLayout() {
           className="app-scroll-main flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar latent-grid px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-8"
         >
           <div className="max-w-7xl mx-auto w-full">
-            <Outlet />
+            <CachedOutlet />
           </div>
         </main>
         <MobileBottomNav />
