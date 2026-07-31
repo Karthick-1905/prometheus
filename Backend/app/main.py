@@ -22,6 +22,7 @@ from app.api.routes import (
     live,
     ml,
     notifications,
+    optimization,
     simulate,
     sites,
     telemetry,
@@ -77,6 +78,7 @@ def create_app() -> FastAPI:
     app.include_router(live.router)
     app.include_router(analytics.router)
     app.include_router(notifications.router)
+    app.include_router(optimization.router)
     return app
 
 

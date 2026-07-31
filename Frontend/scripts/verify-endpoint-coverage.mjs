@@ -29,6 +29,7 @@ const incomplete = coverage.filter((item) => !item.client || !item.surface);
 const apiSource = [
   fs.readFileSync(path.join(frontend, 'src/api/platform.ts'), 'utf8'),
   fs.readFileSync(path.join(frontend, 'src/api/demand.ts'), 'utf8'),
+  fs.readFileSync(path.join(frontend, 'src/api/optimization.ts'), 'utf8'),
 ].join('\n');
 const missingClients = coverage.filter((item) => {
   const [objectName, methodName] = item.client.split('.');

@@ -96,6 +96,8 @@ class ProjectSite(Base):
     company_id: Mapped[int] = mapped_column("company_id", ForeignKey("Company.company_id", ondelete="CASCADE"))
     site_name: Mapped[Optional[str]] = mapped_column("site_name", String)
     location: Mapped[Optional[str]] = mapped_column(String)
+    latitude: Mapped[Optional[Decimal]] = mapped_column(Numeric(9, 6))
+    longitude: Mapped[Optional[Decimal]] = mapped_column(Numeric(9, 6))
     status: Mapped[Optional[ProjectSiteStatus]] = mapped_column(
         Enum(ProjectSiteStatus, name="ProjectSiteStatus", create_constraint=False)
     )

@@ -10,6 +10,7 @@ import FleetAssets from './pages/fleet/Assets';
 import FleetUtilization from './pages/fleet/Utilization';
 import FleetLiveTelemetry from './pages/fleet/LiveTelemetry';
 import FleetAnomalyDetection from './pages/fleet/AnomalyDetection';
+import FleetOptimization from './pages/fleet/Optimization';
 import DealerDashboard from './pages/dealer/Dashboard';
 import DealerRentalOps from './pages/dealer/RentalOps';
 import DealerInventory from './pages/dealer/Inventory';
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/fleet/telemetry" element={<FleetLiveTelemetry />} />
         <Route path="/fleet/anomalies" element={<FleetAnomalyDetection />} />
         <Route path="/fleet/demand" element={<DemandForecastPage />} />
+        <Route path="/fleet/optimization" element={<FleetOptimization />} />
 
         {/* Dealer */}
         <Route path="/dealer/dashboard" element={<DealerDashboard />} />
@@ -72,6 +74,7 @@ export default function App() {
         <Route path="/dealer/inventory" element={<DealerInventory />} />
         <Route path="/dealer/customers" element={<DealerCustomers />} />
         <Route path="/dealer/demand" element={<DealerDemandPage />} />
+        <Route path="/dealer/optimization" element={<FleetOptimization />} />
 
         {/* Site Manager */}
         <Route path="/site/dashboard" element={<SiteDashboard />} />
@@ -88,6 +91,7 @@ export default function App() {
         {/* System Administrator */}
         <Route path="/admin/system" element={<SystemOperations />} />
         <Route path="/admin/demand" element={<DemandForecastPage />} />
+        <Route path="/admin/optimization" element={<FleetOptimization />} />
 
       </Route>
 

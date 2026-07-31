@@ -66,6 +66,7 @@ export const ROLE_NAV: Record<Role, NavItem[]> = {
     { path: '/fleet/telemetry', label: 'Live Telemetry', icon: 'sensors' },
     { path: '/fleet/anomalies', label: 'Anomaly Detection', icon: 'warning' },
     { path: '/fleet/demand', label: 'Demand Planning', icon: 'query_stats' },
+    { path: '/fleet/optimization', label: 'Fleet Optimization', icon: 'route' },
   ],
   dealer: [
     { path: '/dealer/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -73,6 +74,7 @@ export const ROLE_NAV: Record<Role, NavItem[]> = {
     { path: '/dealer/inventory', label: 'Equipment Inventory', icon: 'construction' },
     { path: '/dealer/customers', label: 'Customers', icon: 'groups' },
     { path: '/dealer/demand', label: 'Demand Positioning', icon: 'moving' },
+    { path: '/dealer/optimization', label: 'Fleet Optimization', icon: 'route' },
   ],
   site_manager: [
     { path: '/site/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -89,6 +91,7 @@ export const ROLE_NAV: Record<Role, NavItem[]> = {
   system_admin: [
     { path: '/admin/system', label: 'System & ML', icon: 'settings_suggest' },
     { path: '/admin/demand', label: 'Demand Planning', icon: 'query_stats' },
+    { path: '/admin/optimization', label: 'Fleet Optimization', icon: 'route' },
   ],
 };
 

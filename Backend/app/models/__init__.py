@@ -35,6 +35,16 @@ from app.models.forecasting import (
     RecommendationFeedback,
     RegionalPositioningRecommendation,
 )
+from app.models.optimization import (
+    EquipmentCapability,
+    EquipmentCostProfile,
+    EquipmentSubstitutionRule,
+    OptimizationCandidate,
+    OptimizationRecommendation,
+    OptimizationRun,
+    PhaseEquipmentRequirement,
+    ProjectPhase,
+)
 
 __all__ = [
     "AnomalyAlert",
@@ -68,4 +78,12 @@ __all__ = [
     "ForecastOverride",
     "RecommendationFeedback",
     "RegionalPositioningRecommendation",
+    "ProjectPhase",
+    "PhaseEquipmentRequirement",
+    "EquipmentCapability",
+    "EquipmentSubstitutionRule",
+    "EquipmentCostProfile",
+    "OptimizationRun",
+    "OptimizationCandidate",
+    "OptimizationRecommendation",
 ]
