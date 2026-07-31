@@ -16,7 +16,7 @@ export default function RoleLayout() {
       </div>
 
       <div className="flex-1 flex flex-col h-full min-h-0 min-w-0 md:ml-64">
-        <AppHeader />
+        {/* <AppHeader /> */}
         <main
           id="app-scroll-main"
           className="app-scroll-main flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar latent-grid px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-8"

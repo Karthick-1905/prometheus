@@ -324,7 +324,7 @@ export default function DemandForecastPage() {
             planning quantities, and package options.
           </p>
         </div>
-        {status && (
+        {/* {status && (
           <div className={`service-chip ${status.ready ? 'is-ready' : 'is-down'}`}>
             <strong>{status.ready ? 'Service ready' : 'Service not ready'}</strong>
             <span>
@@ -337,10 +337,10 @@ export default function DemandForecastPage() {
                 : ''}
             </span>
           </div>
-        )}
+        )} */}
       </header>
 
-      {(status?.warning || forecast?.warning) && (
+      {/* {(status?.warning || forecast?.warning) && (
         <div className="mode-notice" role="note">
           <strong>
             {forecast?.dataMode === 'synthetic' || status?.synthetic
@@ -349,7 +349,7 @@ export default function DemandForecastPage() {
           </strong>
           <span>{forecast?.warning || status?.warning}</span>
         </div>
-      )}
+      )} */}
 
       <section className="planning-toolbar" aria-label="Forecast selection">
         <label>
@@ -434,9 +434,8 @@ export default function DemandForecastPage() {
                 <button
                   type="button"
                   key={row.equipmentType}
-                  className={`need-card ${
-                    row.equipmentType === equipmentType ? 'is-active' : ''
-                  }`}
+                  className={`need-card ${row.equipmentType === equipmentType ? 'is-active' : ''
+                    }`}
                   onClick={() => setEquipmentType(row.equipmentType)}
                 >
                   <header>

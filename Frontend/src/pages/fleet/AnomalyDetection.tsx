@@ -56,7 +56,11 @@ export default function FleetAnomalyDetection() {
       {resource.loading ? <PageSkeleton rows={8} /> : (
         <Panel>
           {!resource.data?.alerts.length ? <EmptyState title={resolved ? 'No resolved alerts' : 'No open alerts'} message="Change the filters or wait for anomaly detection to produce a new alert." /> : (
-            <div className="data-list">{resource.data.alerts.map((alert) => <article className="alert-row" key={alert.alertId}><div className="alert-row-head"><StatusBadge status={alert.severity ?? 'INFO'} /><span>Alert #{alert.alertId}</span><time>{alert.detectedAt ? new Date(alert.detectedAt).toLocaleString() : 'Unknown time'}</time></div><h3>{alert.description ?? alert.anomalyType ?? 'Anomaly alert'}</h3><p>{alert.recommendation ?? 'Inspect the equipment and telemetry context before acting.'}</p><footer><span>Equipment {alert.equipmentId} · {alert.equipmentType ?? 'Unknown type'}</span><div><button className="btn-secondary" type="button" onClick={() => void inspect(alert)}>View details</button>{!alert.isResolved && <button className="btn-primary" type="button" onClick={() => void resolve(alert)}>Resolve</button>}</div></footer></article>)}</div>
+            <div className="data-list">{resource.data.alerts.map((alert) =>
+              <article className="alert-row" key={alert.alertId}><div className="alert-row-head">
+                <StatusBadge status={alert.severity ?? 'INFO'} /><span>Alert #{alert.alertId}</span>
+                <time>{alert.detectedAt ? new Date(alert.detectedAt).toLocaleString() : 'Unknown time'}</time>
+              </div><h3>{alert.description ?? alert.anomalyType ?? 'Anomaly alert'}</h3><p>{alert.recommendation ?? 'Inspect the equipment and telemetry context before acting.'}</p><footer><span>Equipment {alert.equipmentId} · {alert.equipmentType ?? 'Unknown type'}</span><div><button className="btn-secondary" type="button" onClick={() => void inspect(alert)}>View details</button>{!alert.isResolved && <><button className="btn-primary" type="button" onClick={() => void resolve(alert)}>Resolve</button></>}</div></footer></article>)}</div>
           )}
         </Panel>
       )}
