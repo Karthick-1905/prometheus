@@ -27,10 +27,10 @@ export default function AppSidebar() {
         </p>
       </div>
 
-      <div className="mx-1 mb-2 px-3 py-2 rounded-lg bg-primary-container/40 border border-primary/20">
+      {/* <div className="mx-1 mb-2 px-3 py-2 rounded-lg bg-primary-container/40 border border-primary/20">
         <p className="text-[10px] uppercase font-bold text-on-surface-variant">Active role</p>
         <p className="text-xs font-black text-on-primary-container">{roleLabel}</p>
-      </div>
+      </div> */}
 
       <nav className="flex-1 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
         {items.map((item) => (
@@ -38,10 +38,9 @@ export default function AppSidebar() {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg font-label-md text-xs uppercase border ${
-                isActive
-                  ? 'bg-primary-container text-on-primary-container font-bold border-primary shadow-sm'
-                  : 'text-on-surface-variant hover:bg-surface-container border-transparent font-semibold'
+              `sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg font-label-md text-xs uppercase border ${isActive
+                ? 'bg-primary-container text-on-primary-container font-bold border-primary shadow-sm'
+                : 'text-on-surface-variant hover:bg-surface-container border-transparent font-semibold'
               }`
             }
           >
@@ -68,10 +67,9 @@ export default function AppSidebar() {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs uppercase border ${
-                  isActive
-                    ? 'bg-surface-container-high text-on-surface font-bold border-outline-variant'
-                    : 'text-on-surface-variant hover:bg-surface-container border-transparent font-semibold'
+                `sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs uppercase border ${isActive
+                  ? 'bg-surface-container-high text-on-surface font-bold border-outline-variant'
+                  : 'text-on-surface-variant hover:bg-surface-container border-transparent font-semibold'
                 }`
               }
             >
