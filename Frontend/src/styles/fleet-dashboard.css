@@ -113,6 +113,171 @@
   letter-spacing: 0;
 }
 
+/* ── Live status + reallocation signals ─────────────────────────────── */
+.fd-status-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fd-status-track {
+  display: flex;
+  width: 100%;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-surface-container);
+}
+
+.fd-status-segment {
+  min-width: 4px;
+  transition: width 260ms var(--ease-out-quart, ease);
+}
+
+.fd-status-segment.is-working,
+.fd-status-dot.is-working {
+  background: var(--primary);
+}
+
+.fd-status-segment.is-idle,
+.fd-status-dot.is-idle {
+  background: var(--primary-container);
+}
+
+.fd-status-segment.is-off,
+.fd-status-dot.is-off,
+.fd-status-segment.is-in_transit,
+.fd-status-dot.is-in_transit {
+  background: var(--outline);
+}
+
+.fd-status-segment.is-alert,
+.fd-status-dot.is-alert,
+.fd-status-segment.is-overdue,
+.fd-status-dot.is-overdue,
+.fd-status-segment.is-maintenance,
+.fd-status-dot.is-maintenance {
+  background: var(--error);
+}
+
+.fd-status-segment.is-stale,
+.fd-status-dot.is-stale {
+  background: var(--tertiary);
+}
+
+.fd-status-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+}
+
+.fd-status-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+}
+
+.fd-status-row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--on-surface-variant);
+  font-weight: 650;
+}
+
+.fd-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.fd-status-row strong,
+.fd-status-row small {
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.fd-status-row strong {
+  font-weight: 850;
+}
+
+.fd-status-row small {
+  min-width: 2.3rem;
+  color: var(--on-surface-variant);
+  text-align: right;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.fd-reallocation-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.fd-reallocation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 55%, transparent);
+}
+
+.fd-reallocation-row:last-child {
+  border-bottom: 0;
+}
+
+.fd-reallocation-row > div:first-child {
+  min-width: 0;
+}
+
+.fd-reallocation-row strong,
+.fd-reallocation-row span {
+  display: block;
+}
+
+.fd-reallocation-row > div:first-child strong {
+  overflow: hidden;
+  color: var(--on-surface);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fd-reallocation-row > div:first-child span {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--on-surface-variant);
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fd-reallocation-value {
+  text-align: right;
+}
+
+.fd-reallocation-value strong {
+  color: var(--error);
+  font-size: 0.86rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.fd-reallocation-value span {
+  margin-top: 2px;
+  color: var(--on-surface-variant);
+  font-size: 0.62rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
 /* ── Main two-column body ─────────────────────────────────── */
 .fd-body {
   display: grid;
@@ -646,6 +811,10 @@
     justify-content: flex-start;
   }
 
+  .fd-status-list {
+    grid-template-columns: 1fr;
+  }
+
   .fd-demand-card {
     grid-template-columns: 1fr;
   }
@@ -661,7 +830,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fd-bar,
-  .fd-site-meter > span {
+  .fd-site-meter > span,
+  .fd-status-segment {
     animation: none !important;
+    transition: none !important;
   }
 }

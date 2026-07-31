@@ -81,12 +81,12 @@ function projectDemandCards(projects: ProjectSummary[]) {
 
 export default function FleetDashboard() {
   const resource = useAsync(async () => {
-    const [overview, usage, sites, byType, expiring, overdue, alerts, demand, projects] =
+    const [overview, usage, sites, underutilized, expiring, overdue, alerts, demand, projects] =
       await Promise.all([
         fleetApi.overview(),
         analyticsApi.summary(7),
         analyticsApi.bySite(7),
-        analyticsApi.byType(7),
+        analyticsApi.underutilized(7, 0.35),
         fleetApi.expiringContracts(7),
         fleetApi.overdueContracts(),
         alertApi.list({ resolved: false, limit: 8 }).catch(() => ({ data: [] as Alert[] })),
@@ -102,7 +102,7 @@ export default function FleetDashboard() {
       overview,
       usage: usage.data,
       sites: sites.data ?? [],
-      byType: byType.data ?? [],
+      underutilized: underutilized.data ?? [],
       expiring: expiring.data ?? [],
       overdue: overdue.data ?? [],
       alerts: (alerts as { data: Alert[] }).data ?? [],
@@ -115,7 +115,7 @@ export default function FleetDashboard() {
   const totals = (resource.data?.overview.totals ?? {}) as Record<string, unknown>;
   const usage = resource.data?.usage ?? {};
   const sites = resource.data?.sites ?? [];
-  const byType = resource.data?.byType ?? [];
+  const underutilized = resource.data?.underutilized ?? [];
   const alerts = resource.data?.alerts ?? [];
   const dealerCards = buildDemandCards(resource.data?.demandRows ?? []);
   const fallbackDemand = projectDemandCards(resource.data?.projects ?? []);
@@ -131,8 +131,6 @@ export default function FleetDashboard() {
   const idleH = n(usage.totalIdleHours);
   const downtimeH = n(usage.totalDowntimeHours);
   const dueSoon = expiring.length;
-  const donut = donutStroke(utilPct);
-
   // Render the complete backend status universe, including future statuses.
   const statusOrder = ['WORKING', 'IDLE', 'OFF', 'IN_TRANSIT', 'ALERT', 'STALE', 'OVERDUE', 'MAINTENANCE'];
   const statusBreakdown = (resource.data?.overview.statusBreakdown ?? {}) as Record<string, unknown>;
@@ -150,10 +148,8 @@ export default function FleetDashboard() {
       return (aIndex < 0 ? statusOrder.length : aIndex) - (bIndex < 0 ? statusOrder.length : bIndex);
     });
 
-  const typeBars = [...byType]
-    .sort((a, b) => n(b.runtimeHours) - n(a.runtimeHours))
-    .slice(0, 6);
-  const maxRuntime = Math.max(1, ...typeBars.map((row) => n(row.runtimeHours)));
+  const reallocationCandidates = underutilized.slice(0, 5);
+  const statusTotal = Math.max(1, rented);
 
   const topSites = [...sites]
     .sort((a, b) => n(b.utilizationPct) - n(a.utilizationPct))
@@ -283,106 +279,85 @@ export default function FleetDashboard() {
           {/* Two-column body: ops left, anomalies right */}
           <div className="fd-body">
             <div className="fd-stack">
-              <section className="fd-panel" aria-label="Utilization breakdown">
+              <section className="fd-panel" aria-label="Live fleet status">
                 <div className="fd-panel-head">
-                  <h2>Utilization</h2>
-                  <Link to="/fleet/utilization" className="fd-link">
-                    Details
+                  <h2>Live fleet status</h2>
+                  <Link to="/fleet/assets" className="fd-link">
+                    View assets
                     <span className="material-symbols-outlined" aria-hidden="true">
                       chevron_right
                     </span>
                   </Link>
                 </div>
                 <div className="fd-panel-body">
-                  <div className="fd-util">
-                    <div
-                      className="fd-donut"
-                      role="img"
-                      aria-label={`${utilPct.toFixed(1)} percent fleet utilization`}
-                    >
-                      <svg viewBox="0 0 100 100" aria-hidden="true">
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r={donut.radius}
-                          fill="none"
-                          stroke="var(--bg-surface-container)"
-                          strokeWidth="10"
-                        />
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r={donut.radius}
-                          fill="none"
-                          stroke="var(--primary)"
-                          strokeWidth="10"
-                          strokeLinecap="round"
-                          strokeDasharray={`${donut.filled} ${Math.max(0.01, donut.circumference - donut.filled)}`}
-                        />
-                      </svg>
-                      <div className="fd-donut-center">
-                        <strong>{utilPct.toFixed(0)}%</strong>
-                        <span>utilized</span>
+                  {statusMix.length === 0 ? (
+                    <div className="fd-empty">
+                      <strong>No active fleet</strong>
+                      Live machine status appears when rentals are assigned.
+                    </div>
+                  ) : (
+                    <div className="fd-status-overview">
+                      <div
+                        className="fd-status-track"
+                        role="img"
+                        aria-label={`Live status across ${rented} machines`}
+                      >
+                        {statusMix.map((row) => (
+                          <span
+                            className={`fd-status-segment is-${row.status.toLowerCase()}`}
+                            key={row.status}
+                            style={{ width: `${(row.value / statusTotal) * 100}%` }}
+                            title={`${row.label}: ${row.value}`}
+                          />
+                        ))}
+                      </div>
+                      <div className="fd-status-list">
+                        {statusMix.map((row) => (
+                          <div className="fd-status-row" key={row.status}>
+                            <span>
+                              <i className={`fd-status-dot is-${row.status.toLowerCase()}`} aria-hidden="true" />
+                              {row.label}
+                            </span>
+                            <strong>{row.value}</strong>
+                            <small>{Math.round((row.value / statusTotal) * 100)}%</small>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div className="fd-legend">
-                      <div className="fd-legend-row">
-                        <span>
-                          <i className="fd-swatch is-primary" aria-hidden="true" />
-                          Runtime
-                        </span>
-                        <strong>{formatHours(runtimeH)}</strong>
-                      </div>
-                      <div className="fd-legend-row">
-                        <span>
-                          <i className="fd-swatch is-accent" aria-hidden="true" />
-                          Idle
-                        </span>
-                        <strong>{formatHours(idleH)}</strong>
-                      </div>
-                      <div className="fd-legend-row">
-                        <span>
-                          <i className="fd-swatch is-muted" aria-hidden="true" />
-                          Downtime
-                        </span>
-                        <strong>{formatHours(downtimeH)}</strong>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </section>
 
-              <section className="fd-panel" aria-label="Runtime by equipment type">
+              <section className="fd-panel" aria-label="Underutilized assets">
                 <div className="fd-panel-head">
-                  <h2>Runtime mix</h2>
+                  <h2>Reallocation candidates</h2>
                   <Link to="/fleet/utilization" className="fd-link">
-                    Details
+                    Review
                     <span className="material-symbols-outlined" aria-hidden="true">
                       chevron_right
                     </span>
                   </Link>
                 </div>
                 <div className="fd-panel-body">
-                  <div className="fd-chart-value">{formatHours(runtimeH)}</div>
-                  {typeBars.length === 0 ? (
+                  {reallocationCandidates.length === 0 ? (
                     <div className="fd-empty">
-                      <strong>No runtime yet</strong>
-                      Usage appears after logs or telemetry arrive.
+                      <strong>No candidates below 35%</strong>
+                      Current activity does not flag an asset for reallocation.
                     </div>
                   ) : (
-                    <div className="fd-bars" role="img" aria-label="Runtime hours by equipment type">
-                      {typeBars.map((row, index) => {
-                        const hours = n(row.runtimeHours);
-                        const height = Math.max(8, Math.round((hours / maxRuntime) * 100));
-                        const label = shortLabel(text(row.equipmentType));
+                    <div className="fd-reallocation-list">
+                      {reallocationCandidates.map((row, index) => {
+                        const pct = n(row.utilizationPct);
                         return (
-                          <div className="fd-bar-col" key={text(row.equipmentType) || index}>
-                            <div
-                              className={`fd-bar ${index % 2 === 1 ? 'is-soft' : ''}`}
-                              style={{ height: `${height}%` }}
-                              title={`${text(row.equipmentType)}: ${formatHours(hours)}`}
-                            />
-                            <span>{label}</span>
+                          <div className="fd-reallocation-row" key={String(row.equipmentId ?? index)}>
+                            <div>
+                              <strong>{text(row.equipmentName ?? row.equipmentId)}</strong>
+                              <span>{text(row.equipmentType)} · {text(row.siteName ?? 'Unassigned')}</span>
+                            </div>
+                            <div className="fd-reallocation-value">
+                              <strong>{pct.toFixed(0)}%</strong>
+                              <span>{formatHours(row.idleHours)} idle</span>
+                            </div>
                           </div>
                         );
                       })}

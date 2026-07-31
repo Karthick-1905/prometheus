@@ -286,7 +286,7 @@ export default function FleetLiveTelemetry() {
         </FeedbackBanner>
       )}
 
-      <div className="grid lg:grid-cols-[1.35fr_.65fr] gap-4">
+      <div className="grid items-start lg:grid-cols-[1.35fr_.65fr] gap-4">
         <Panel
           title={
             channel === 'logs'

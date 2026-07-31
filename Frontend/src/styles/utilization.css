@@ -351,17 +351,21 @@
   min-width: 0;
 }
 
-.ut-asset-icon {
+.ut-asset-image {
   display: grid;
   place-items: center;
   width: 31px;
   height: 31px;
   flex: 0 0 auto;
-  border: 1px solid var(--outline-variant);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 80%, transparent);
   border-radius: 6px;
-  background: var(--bg-surface-container);
-  color: var(--primary);
-  font-size: 1.05rem;
+  background-color: var(--bg-surface-container);
+  background-image: url('/assets/equipment-sprite.png');
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  background-origin: border-box;
+  background-clip: border-box;
+  overflow: hidden;
 }
 
 .ut-asset-cell > div {

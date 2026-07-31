@@ -40,6 +40,20 @@ function segmentsFor(row: Record<string, unknown>, windowHours: number): Activit
     }));
 }
 
+function machineImageStyle(equipmentType: unknown): React.CSSProperties {
+  const type = String(equipmentType ?? '').toLowerCase();
+  if (type.includes('bulldozer') || type.includes('dozer')) {
+    return { backgroundPosition: '100% 0%' };
+  }
+  if (type.includes('loader')) {
+    return { backgroundPosition: '0% 100%' };
+  }
+  if (type.includes('dump') || type.includes('truck')) {
+    return { backgroundPosition: '100% 100%' };
+  }
+  return { backgroundPosition: '0% 0%' };
+}
+
 function ActivityBar({ row, windowHours }: { row: Record<string, unknown>; windowHours: number }) {
   const segments = segmentsFor(row, windowHours);
   const name = String(row.equipmentName ?? row.equipmentId ?? 'Unknown asset');
@@ -220,7 +234,11 @@ export default function FleetUtilization() {
                       style={{ '--row-index': index } as React.CSSProperties}
                     >
                       <div className="ut-asset-cell">
-                        <span className="ut-asset-icon material-symbols-outlined" aria-hidden="true">construction</span>
+                        <span
+                          className="ut-asset-image"
+                          style={machineImageStyle(row.equipmentType)}
+                          aria-hidden="true"
+                        />
                         <div>
                           <strong>{String(row.equipmentName ?? row.equipmentId ?? 'Unknown asset')}</strong>
                           <span>{String(row.equipmentType ?? 'Equipment')} · {String(row.siteName ?? 'Unassigned')}</span>
