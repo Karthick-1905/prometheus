@@ -48,11 +48,11 @@ export default function LoginPage() {
             Sign in to the role-specific workspace backed by live fleet, dealer, site,
             anomaly, and demand services. Install on your phone for app-like full-screen use.
           </p>
-          <ul>
+          {/* <ul>
             <li><span className="material-symbols-outlined">check_circle</span>Scoped backend access</li>
             <li><span className="material-symbols-outlined">check_circle</span>Live operational status</li>
             <li><span className="material-symbols-outlined">install_mobile</span>Install as mobile web app</li>
-          </ul>
+          </ul> */}
         </section>
 
         <form className="login-panel" onSubmit={submit}>
@@ -101,10 +101,10 @@ export default function LoginPage() {
           <button className="btn-primary login-submit" type="submit" disabled={loading}>
             {loading ? 'Signing in…' : `Continue as ${ROLE_LABELS[selected]}`}
           </button>
-          <p className="login-note">
+          {/* <p className="login-note">
             Demo authentication accepts any non-empty password. Production policy belongs in the identity provider.
             On mobile, use <strong>Settings → Mobile app</strong> or the install banner to add CAT Rental to your home screen.
-          </p>
+          </p> */}
         </form>
       </main>
       <InstallAppBanner />
