@@ -2,6 +2,16 @@
 
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 const SESSION_KEY = 'cat_rental_session';
+const GET_CACHE_TTL_MS = 15_000;
+
+interface CachedResponse {
+  expiresAt: number;
+  value: unknown;
+}
+
+const responseCache = new Map<string, CachedResponse>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
+let cacheGeneration = 0;
 
 export interface ApiSession {
   accessToken?: string;
@@ -36,6 +46,14 @@ export function readApiSession(): ApiSession | null {
 export function writeApiSession(session: ApiSession | null) {
   if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   else localStorage.removeItem(SESSION_KEY);
+  clearRequestCache();
+}
+
+/** Clear cached GETs after a mutation or identity change. */
+export function clearRequestCache() {
+  cacheGeneration += 1;
+  responseCache.clear();
+  inFlightRequests.clear();
 }
 
 function authHeaders(): Record<string, string> {
@@ -74,17 +92,64 @@ async function parseResponse(response: Response): Promise<unknown> {
 }
 
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const method = (init.method ?? 'GET').toUpperCase();
+  const headers = {
+    Accept: 'application/json',
+    ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+    ...authHeaders(),
+    ...(init.headers ?? {}),
+  };
+  const canCache = method === 'GET' && !init.signal && init.cache !== 'no-store';
+  const cacheKey = canCache
+    ? JSON.stringify([
+        `${BASE}${path}`,
+        Object.entries(headers).sort(([left], [right]) => left.localeCompare(right)),
+      ])
+    : null;
+
+  if (cacheKey) {
+    const cached = responseCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.value as T;
+    if (cached) responseCache.delete(cacheKey);
+
+    const pending = inFlightRequests.get(cacheKey);
+    if (pending) return pending as Promise<T>;
+  }
+
+  const pending = performRequest<T>(path, init, headers);
+  if (cacheKey) {
+    const requestGeneration = cacheGeneration;
+    inFlightRequests.set(cacheKey, pending);
+    try {
+      const value = await pending;
+      if (requestGeneration === cacheGeneration) {
+        responseCache.set(cacheKey, {
+          expiresAt: Date.now() + GET_CACHE_TTL_MS,
+          value,
+        });
+      }
+      return value;
+    } finally {
+      if (inFlightRequests.get(cacheKey) === pending) inFlightRequests.delete(cacheKey);
+    }
+  }
+
+  const value = await pending;
+  if (method !== 'GET') clearRequestCache();
+  return value;
+}
+
+async function performRequest<T>(
+  path: string,
+  init: RequestInit,
+  headers: HeadersInit,
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${BASE}${path}`, {
-      cache: init.cache ?? 'no-store',
+      cache: init.cache ?? 'default',
       ...init,
-      headers: {
-        Accept: 'application/json',
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...authHeaders(),
-        ...(init.headers ?? {}),
-      },
+      headers,
     });
   } catch (error) {
     throw new ApiError(

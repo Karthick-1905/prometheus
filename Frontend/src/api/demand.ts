@@ -1,8 +1,6 @@
 /** Demand forecasting client — uses session auth when present, else demo headers. */
 import { idempotencyKey, readApiSession, request as platformRequest } from './client';
 
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
-
 export interface ProjectSummary {
   projectId: number;
   customerId: number;
@@ -220,30 +218,13 @@ async function request<T>(
   init: RequestInit = {},
   persona: 'customer' | 'dealer' = 'customer',
 ): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
-    cache: init.cache ?? 'no-store',
+  return platformRequest<T>(path, {
     ...init,
     headers: {
-      Accept: 'application/json',
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       ...demandHeaders(persona),
       ...(init.headers ?? {}),
     },
   });
-  let payload: any;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = { detail: `The server returned ${response.status} without JSON.` };
-  }
-  if (!response.ok) {
-    throw new Error(
-      typeof payload.detail === 'string'
-        ? payload.detail
-        : payload.error ?? `Request failed (${response.status})`,
-    );
-  }
-  return payload as T;
 }
 
 export const demandApi = {
