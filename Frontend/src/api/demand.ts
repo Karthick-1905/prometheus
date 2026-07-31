@@ -157,6 +157,8 @@ export interface DealerRow {
   safeDemand: number;
   expectedAvailable: number;
   shortageOrSurplus: number;
+  shortageUnits?: number;
+  surplusUnits?: number;
   projectCount: number;
   confidence: string;
   severity: string;
@@ -301,8 +303,12 @@ export const demandApi = {
       modelVersion?: string;
     }>('/api/demand/dealer', {}, 'dealer'),
 
-  decideDealerAction: (action: DealerAction, decision: 'APPROVED' | 'REJECTED') =>
-    request<{ success: boolean; status: string }>(
+  decideDealerAction: (
+    action: DealerAction,
+    decision: 'APPROVED' | 'REJECTED',
+    reason: string,
+  ) =>
+    request<{ success: boolean; status: string; version?: number }>(
       `/api/demand/dealer/actions/${action.actionId}/decision`,
       {
         method: 'POST',
@@ -310,10 +316,7 @@ export const demandApi = {
         body: JSON.stringify({
           decision,
           expectedVersion: action.version ?? 1,
-          reason:
-            decision === 'APPROVED'
-              ? 'Fleet manager confirmed protected source surplus and lead time.'
-              : 'Fleet manager rejected the proposed movement after operational review.',
+          reason,
         }),
       },
       'dealer',

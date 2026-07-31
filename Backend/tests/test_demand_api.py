@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.security.jwt_tokens import create_access_token
 
 client = TestClient(app)
 
@@ -86,3 +87,87 @@ def test_override_requires_version_and_is_idempotent():
     second = client.post("/api/demand/override", headers=headers, json=body)
     assert first.status_code == 200
     assert second.json() == first.json()
+
+
+def test_dashboard_customer_jwt_is_accepted_and_tenant_scoped():
+    tenant_one = create_access_token(
+        subject="fleet-manager-1",
+        role="FLEET_MANAGER",
+        company_id=1,
+    )
+    allowed = client.get(
+        "/api/demand/projects/1",
+        headers={"Authorization": f"Bearer {tenant_one}"},
+    )
+    assert allowed.status_code == 200
+
+    tenant_two = create_access_token(
+        subject="fleet-manager-2",
+        role="FLEET_MANAGER",
+        company_id=2,
+    )
+    denied = client.get(
+        "/api/demand/projects/1",
+        headers={"Authorization": f"Bearer {tenant_two}"},
+    )
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "Project is outside your customer scope"
+
+
+def test_dashboard_dealer_jwt_is_accepted_and_requires_dealer_scope():
+    scoped = create_access_token(
+        subject="dealer-1",
+        role="DEALER",
+        dealer_id=1,
+    )
+    allowed = client.get(
+        "/api/demand/dealer",
+        headers={"Authorization": f"Bearer {scoped}"},
+    )
+    assert allowed.status_code == 200
+
+    unscoped = create_access_token(subject="dealer-unscoped", role="DEALER")
+    denied = client.get(
+        "/api/demand/dealer",
+        headers={"Authorization": f"Bearer {unscoped}"},
+    )
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "Dealer scope required for this role"
+
+
+def test_customer_jwt_without_company_scope_fails_closed():
+    token = create_access_token(subject="fleet-unscoped", role="FLEET_MANAGER")
+    response = client.get(
+        "/api/demand/projects",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Company scope required for this role"
+
+
+def test_production_rejects_demo_headers_but_accepts_bearer(monkeypatch):
+    from app.security import demand_access
+
+    class ProductionSettings:
+        is_production = True
+        demand_demo_auth_enabled = True
+
+    monkeypatch.setattr(demand_access, "get_settings", lambda: ProductionSettings())
+
+    headers_only = client.get(
+        "/api/demand/projects",
+        headers={"X-User-Role": "CUSTOMER_PROJECT_MANAGER", "X-Company-Id": "1"},
+    )
+    assert headers_only.status_code == 401
+    assert headers_only.json()["detail"] == "Authorization Bearer token required"
+
+    token = create_access_token(
+        subject="production-fleet",
+        role="FLEET_MANAGER",
+        company_id=1,
+    )
+    bearer = client.get(
+        "/api/demand/projects",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert bearer.status_code == 200

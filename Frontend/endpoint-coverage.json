@@ -75,19 +75,19 @@
   {"method":"GET","path":"/api/v1/optimization/runs/{run_id}","client":"optimizationApi.getRun","surface":"Fleet Optimization run details"},
   {"method":"GET","path":"/api/v1/optimization/recommendations","client":"optimizationApi.recommendations","surface":"Fleet Optimization recommendation queue"},
   {"method":"POST","path":"/api/v1/optimization/recommendations/{recommendation_id}/decision","client":"optimizationApi.decide","surface":"Fleet Optimization approval actions"},
-  {"method":"GET","path":"/api/demand/status","client":"demandPlatformApi.status","surface":"Admin System readiness"},
+  {"method":"GET","path":"/api/demand/status","client":"demandPlatformApi.status","surface":"Admin Demand Operations readiness"},
   {"method":"GET","path":"/api/demand/forecast","client":"demandPlatformApi.legacyForecast","surface":"Admin System compatibility forecast"},
   {"method":"GET","path":"/api/demand/projects","client":"demandApi.projects","surface":"Demand Planning"},
   {"method":"GET","path":"/api/demand/projects/{project_id}","client":"demandApi.project","surface":"Demand Planning project load"},
   {"method":"GET","path":"/api/demand/projects/{project_id}/equipment/{equipment_type}","client":"demandApi.equipmentForecast","surface":"Demand Planning equipment forecast"},
   {"method":"GET","path":"/api/demand/projects/{project_id}/packages","client":"demandApi.packages","surface":"Demand Planning package comparison"},
   {"method":"GET","path":"/api/demand/dealer","client":"demandApi.dealer","surface":"Dealer Demand Positioning"},
-  {"method":"GET","path":"/api/demand/metrics","client":"demandPlatformApi.metrics","surface":"Admin System readiness"},
+  {"method":"GET","path":"/api/demand/metrics","client":"demandPlatformApi.metrics","surface":"Admin Demand Operations model evidence"},
   {"method":"GET","path":"/api/demand/forecasts/{forecast_id}/explanation","client":"demandApi.explanation","surface":"Demand Planning explanation"},
   {"method":"POST","path":"/api/demand/override","client":"demandApi.override","surface":"Demand Planning override form"},
   {"method":"POST","path":"/api/demand/feedback","client":"demandApi.feedback","surface":"Demand Planning decision actions"},
   {"method":"POST","path":"/api/demand/manual-reviews","client":"demandApi.manualReview","surface":"Demand Planning review action"},
   {"method":"POST","path":"/api/demand/dealer/actions/{action_id}/decision","client":"demandApi.decideDealerAction","surface":"Dealer Demand decision actions"},
-  {"method":"POST","path":"/api/demand/dev/synthetic/generate","client":"demandPlatformApi.generateSynthetic","surface":"Admin System data lifecycle"},
-  {"method":"POST","path":"/api/demand/dev/models/retrain","client":"demandPlatformApi.retrain","surface":"Admin System model lifecycle"}
+  {"method":"POST","path":"/api/demand/dev/synthetic/generate","client":"demandPlatformApi.generateSynthetic","surface":"Admin Demand Operations data lifecycle"},
+  {"method":"POST","path":"/api/demand/dev/models/retrain","client":"demandPlatformApi.retrain","surface":"Admin Demand Operations model lifecycle"}
 ]

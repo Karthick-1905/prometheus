@@ -69,6 +69,8 @@ def build_dealer_view(
                 "safeDemand": record["safeDemand"],
                 "expectedAvailable": available,
                 "shortageOrSurplus": shortage,
+                "shortageUnits": max(shortage, 0),
+                "surplusUnits": max(-shortage, 0),
                 "projectCount": record["projectCount"],
                 "confidence": confidence,
                 "severity": "CRITICAL" if shortage >= 3 else "WARNING" if shortage > 0 else "SURPLUS",
@@ -81,20 +83,33 @@ def build_dealer_view(
         by_type_week[(row["equipmentType"], row["forecastWeek"])].append(row)
     for (equipment_type, week), group in by_type_week.items():
         shortages = sorted(
-            [row for row in group if row["shortageOrSurplus"] > 0],
-            key=lambda item: item["shortageOrSurplus"],
+            [row for row in group if row["shortageUnits"] > 0],
+            key=lambda item: item["shortageUnits"],
             reverse=True,
         )
         sources = sorted(
-            [row for row in group if row["shortageOrSurplus"] < -1],
-            key=lambda item: item["shortageOrSurplus"],
+            [row for row in group if row["surplusUnits"] > 1],
+            key=lambda item: item["surplusUnits"],
+            reverse=True,
         )
+        remaining_surplus = {
+            source["region"]: source["surplusUnits"]
+            for source in sources
+        }
         for destination in shortages:
-            if not sources:
+            source = next(
+                (
+                    candidate
+                    for candidate in sources
+                    if remaining_surplus[candidate["region"]] > 1
+                ),
+                None,
+            )
+            if source is None:
                 continue
-            source = sources[0]
-            transferable = max(0, abs(source["shortageOrSurplus"]) - 1)
-            units = min(destination["shortageOrSurplus"], transferable)
+            source_surplus = remaining_surplus[source["region"]]
+            transferable = max(0, source_surplus - 1)
+            units = min(destination["shortageUnits"], transferable)
             if units <= 0:
                 continue
             digest = hashlib.sha256(
@@ -112,16 +127,16 @@ def build_dealer_view(
                     "transferLeadDays": 3,
                     "status": "PROPOSED",
                     "customerImpact": (
-                        f"Source retains {abs(source['shortageOrSurplus']) - units} units above safe demand."
+                        f"Source retains {source_surplus - units} units above safe demand."
                     ),
                     "rationale": (
                         f"{destination['region']} has a safe-planning shortage of "
-                        f"{destination['shortageOrSurplus']} {equipment_type.lower()} units. "
+                        f"{destination['shortageUnits']} {equipment_type.lower()} units. "
                         f"{source['region']} has protected surplus after a one-unit buffer."
                     ),
                 }
             )
-            source["shortageOrSurplus"] += units
+            remaining_surplus[source["region"]] = source_surplus - units
 
     return {
         "rows": rows,

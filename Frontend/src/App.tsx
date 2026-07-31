@@ -26,6 +26,7 @@ import OperatorActivityHistory from './pages/operator/ActivityHistory';
 import DemandForecastPage from './pages/DemandForecast';
 import DealerDemandPage from './pages/DealerDemand';
 import SystemOperations from './pages/admin/SystemOperations';
+import DemandOperations from './pages/admin/DemandOperations';
 import { GuestOnly, RequireRole } from './routes/ProtectedRoute';
 import { ROLE_HOME } from './types/roles';
 
@@ -90,7 +91,7 @@ export default function App() {
 
         {/* System Administrator */}
         <Route path="/admin/system" element={<SystemOperations />} />
-        <Route path="/admin/demand" element={<DemandForecastPage />} />
+        <Route path="/admin/demand" element={<DemandOperations />} />
         <Route path="/admin/optimization" element={<FleetOptimization />} />
 
       </Route>

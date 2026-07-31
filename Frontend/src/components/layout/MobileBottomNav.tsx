@@ -3,9 +3,21 @@ import { useRole } from '../../context/RoleContext';
 import { ROLE_NAV, type NavItem } from '../../types/roles';
 
 /** Pick up to 4 primary destinations for thumb-friendly bottom nav. */
-function mobileItems(items: NavItem[]): NavItem[] {
+function mobileItems(items: NavItem[], role: string): NavItem[] {
   if (items.length <= 4) return items;
-  // Prefer first 3 core pages + last (often important secondary)
+
+  if (role === 'fleet_manager') {
+    const preferredPaths = [
+      '/fleet/dashboard',
+      '/fleet/assets',
+      '/fleet/demand',
+      '/fleet/optimization',
+    ];
+    return preferredPaths
+      .map((path) => items.find((item) => item.path === path))
+      .filter((item): item is NavItem => Boolean(item));
+  }
+
   return [...items.slice(0, 3), items[items.length - 1]];
 }
 
@@ -13,7 +25,7 @@ export default function MobileBottomNav() {
   const { role } = useRole();
   if (!role) return null;
 
-  const items = mobileItems(ROLE_NAV[role]);
+  const items = mobileItems(ROLE_NAV[role], role);
 
   return (
     <nav

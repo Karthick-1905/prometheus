@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { demandPlatformApi, systemApi } from '../../api/platform';
+import { systemApi } from '../../api/platform';
 import type { JsonRecord } from '../../api/types';
 import PageHeader from '../../components/ui/PageHeader';
 import Panel from '../../components/ui/Panel';
@@ -64,10 +64,6 @@ export default function SystemOperations() {
   const [checks, setChecks] = useState<Array<{ name: string; ok: boolean; detail: unknown }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [legacyType, setLegacyType] = useState('Excavator');
-  const [legacyHorizon, setLegacyHorizon] = useState(7);
-  const [legacy, setLegacy] = useState<unknown>(null);
-
   const loadChecks = async () => {
     setLoading(true);
     setError(null);
@@ -76,8 +72,6 @@ export default function SystemOperations() {
       ['Application health', systemApi.health],
       ['Anomaly model health', systemApi.mlHealth],
       ['Anomaly model status', systemApi.mlStatus],
-      ['Demand service status', demandPlatformApi.status],
-      ['Demand model metrics', demandPlatformApi.metrics],
     ] as const;
     const settled = await Promise.allSettled(operations.map(([, loader]) => loader()));
     setChecks(
@@ -96,15 +90,6 @@ export default function SystemOperations() {
   useEffect(() => {
     void loadChecks();
   }, []);
-
-  const runLegacy = async () => {
-    setError(null);
-    try {
-      setLegacy(await demandPlatformApi.legacyForecast(legacyType, legacyHorizon));
-    } catch (reason) {
-      setError(getErrorMessage(reason));
-    }
-  };
 
   return (
     <div>
@@ -159,32 +144,7 @@ export default function SystemOperations() {
             run={systemApi.train}
           />
         </Panel>
-        <Panel title="Demand data lifecycle">
-          <OperationForm
-            title="Generate synthetic demand data"
-            description="Create a deterministic planning dataset for demos and verification."
-            actionLabel="Generate dataset"
-            initial={{ seed: 20260730, projectCount: 28, weeks: 52 }}
-            run={demandPlatformApi.generateSynthetic}
-          />
-          <OperationForm
-            title="Retrain demand model"
-            description="Benchmark and promote demand forecasting models using the current dataset."
-            actionLabel="Retrain demand model"
-            initial={{ seed: 20260730, nEstimators: 160, randomState: 42 }}
-            run={demandPlatformApi.retrain}
-          />
-        </Panel>
       </div>
-
-      <Panel title="Legacy forecast compatibility" className="mt-4">
-        <div className="inline-form">
-          <label className="field"><span>Equipment type</span><input value={legacyType} onChange={(event) => setLegacyType(event.target.value)} /></label>
-          <label className="field"><span>Horizon (days)</span><input type="number" min={1} max={28} value={legacyHorizon} onChange={(event) => setLegacyHorizon(Number(event.target.value))} /></label>
-          <button className="btn-secondary" type="button" onClick={runLegacy}>Run compatibility forecast</button>
-        </div>
-        <JsonResult value={legacy} />
-      </Panel>
     </div>
   );
 }

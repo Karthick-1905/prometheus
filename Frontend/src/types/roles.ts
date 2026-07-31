@@ -90,7 +90,7 @@ export const ROLE_NAV: Record<Role, NavItem[]> = {
   ],
   system_admin: [
     { path: '/admin/system', label: 'System & ML', icon: 'settings_suggest' },
-    { path: '/admin/demand', label: 'Demand Planning', icon: 'query_stats' },
+    { path: '/admin/demand', label: 'Demand Operations', icon: 'model_training' },
     { path: '/admin/optimization', label: 'Fleet Optimization', icon: 'route' },
   ],
 };
