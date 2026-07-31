@@ -137,7 +137,12 @@ export const siteApi = {
     request<Envelope<Site>>('/api/v1/sites', json(body)),
   site: (siteId: number) => request<Envelope<Site>>(`/api/v1/sites/${siteId}`),
   summary: (siteId: number) =>
-    request<Envelope<Site & { activeAssignments: number; equipment: Assignment[] }>>(
+    request<Envelope<Site & {
+      activeAssignments: number;
+      liveWorking: number;
+      liveStatusBreakdown: Record<string, number>;
+      equipment: Assignment[];
+    }>>(
       `/api/v1/sites/${siteId}/summary`,
     ),
   equipment: (siteId: number) =>

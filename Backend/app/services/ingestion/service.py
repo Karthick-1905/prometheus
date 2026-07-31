@@ -63,6 +63,7 @@ class IngestionService:
         )
         enriched_telemetry = {
             **telemetry,
+            "companyId": geofence.get("companyId") or telemetry.get("companyId"),
             "siteId": geofence.get("siteId") or telemetry.get("siteId"),
             "distanceFromSiteCenterMeters": geofence.get("distanceMeters"),
             "geofenceRadiusMeters": geofence.get("radiusMeters"),

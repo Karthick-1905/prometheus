@@ -36,12 +36,12 @@ export default function DealerDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <StatCard label="Equipment" value={n(totals.equipment)} icon="construction" />
             <StatCard label="Available" value={n(totals.available)} icon="check_circle" accent="success" />
-            <StatCard label="Active contracts" value={n(totals.activeContracts)} icon="assignment" />
-            <StatCard label="Overdue" value={n(totals.overdueContracts)} icon="event_busy" accent="warning" />
+            <StatCard label="Rented" value={n(totals.rented)} icon="assignment" />
+            <StatCard label="Maintenance" value={n(totals.maintenance)} icon="build" accent="warning" />
           </div>
           <div className="grid lg:grid-cols-2 gap-4">
             <Panel title="Recent contracts"><div className="data-list">{resource.data?.contracts.map((contract) => <div className="data-list-row compact" key={contract.contractId}><div><strong>{contract.companyName ?? `Company ${contract.companyId}`}</strong><span>{contract.equipmentName ?? `Equipment ${contract.equipmentId}`} · Contract #{contract.contractId}</span></div><strong>{contract.rentalStatus}</strong></div>)}</div></Panel>
-            <Panel title="Inventory mix"><div className="data-list">{Object.entries((resource.data?.summary.equipmentByStatus ?? {}) as Record<string, unknown>).map(([status, value]) => <div className="data-list-row compact" key={status}><strong>{status}</strong><span>{n(value)} units</span></div>)}</div></Panel>
+            <Panel title="Contract mix"><div className="data-list">{Object.entries((resource.data?.summary.contractsByStatus ?? {}) as Record<string, unknown>).map(([status, value]) => <div className="data-list-row compact" key={status}><strong>{status}</strong><span>{n(value)} contracts</span></div>)}</div></Panel>
           </div>
         </div>
       )}

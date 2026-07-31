@@ -22,8 +22,20 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.domain import AnomalyAlert
 from app.schemas.telemetry import ResolveAlertBody
+from app.security.dashboard_access import (
+    DashboardPrincipal,
+    get_dashboard_principal,
+    require_fleet_access,
+)
 
 router = APIRouter(tags=["Alerts"])
+
+
+def _principal(
+    principal: DashboardPrincipal = Depends(get_dashboard_principal),
+) -> DashboardPrincipal:
+    require_fleet_access(principal)
+    return principal
 
 
 def _alert_dict(a: AnomalyAlert) -> dict:
@@ -51,31 +63,38 @@ def _list_alerts(
     resolved: Optional[bool],
     severity: Optional[str],
     equipment_id: Optional[str],
+    company_id: Optional[int],
     limit: int,
 ) -> list[AnomalyAlert]:
-    stmt = select(AnomalyAlert).order_by(AnomalyAlert.detected_at.desc()).limit(limit)
+    stmt = select(AnomalyAlert)
+    if company_id is not None:
+        stmt = stmt.where(AnomalyAlert.company_id == company_id)
     if resolved is not None:
         stmt = stmt.where(AnomalyAlert.is_resolved == resolved)
     if severity:
         stmt = stmt.where(AnomalyAlert.severity == severity)
     if equipment_id:
         stmt = stmt.where(AnomalyAlert.equipment_id == str(equipment_id))
+    stmt = stmt.order_by(AnomalyAlert.detected_at.desc()).limit(limit)
     return list(db.execute(stmt).scalars().all())
 
 
-def _summary(db: Session) -> dict:
-    open_rows = db.execute(
-        select(AnomalyAlert.severity, func.count())
-        .where(AnomalyAlert.is_resolved.is_(False))
-        .group_by(AnomalyAlert.severity)
-    ).all()
+def _summary(db: Session, company_id: Optional[int]) -> dict:
+    open_stmt = select(AnomalyAlert.severity, func.count()).where(
+        AnomalyAlert.is_resolved.is_(False)
+    )
+    resolved_stmt = select(func.count()).select_from(AnomalyAlert).where(
+        AnomalyAlert.is_resolved.is_(True)
+    )
+    if company_id is not None:
+        open_stmt = open_stmt.where(AnomalyAlert.company_id == company_id)
+        resolved_stmt = resolved_stmt.where(AnomalyAlert.company_id == company_id)
+    open_rows = db.execute(open_stmt.group_by(AnomalyAlert.severity)).all()
     by_severity = {
         (s.value if hasattr(s, "value") else str(s)): c for s, c in open_rows
     }
     total_open = sum(by_severity.values())
-    total_resolved = db.execute(
-        select(func.count()).select_from(AnomalyAlert).where(AnomalyAlert.is_resolved.is_(True))
-    ).scalar_one()
+    total_resolved = db.execute(resolved_stmt).scalar_one()
     return {
         "open": total_open,
         "resolved": int(total_resolved or 0),
@@ -86,6 +105,17 @@ def _summary(db: Session) -> dict:
     }
 
 
+def _get_scoped_alert(
+    db: Session, alert_id: int, company_id: Optional[int]
+) -> AnomalyAlert:
+    alert = db.get(AnomalyAlert, alert_id)
+    if not alert or (
+        company_id is not None and alert.company_id != company_id
+    ):
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return alert
+
+
 # ── Legacy routes (backward compatible) ───────────────────────────
 
 @router.get("/api/alerts")
@@ -93,19 +123,29 @@ def list_alerts_legacy(
     resolved: bool = Query(False),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
 ):
     try:
-        rows = _list_alerts(db, resolved=resolved, severity=None, equipment_id=None, limit=limit)
+        rows = _list_alerts(
+            db,
+            resolved=resolved,
+            severity=None,
+            equipment_id=None,
+            company_id=principal.company_id,
+            limit=limit,
+        )
         return {"success": True, "alerts": [_alert_dict(a) for a in rows]}
     except Exception as e:  # noqa: BLE001
         return {"success": False, "error": str(e), "alerts": []}
 
 
 @router.patch("/api/alerts")
-def resolve_alert_legacy(body: ResolveAlertBody, db: Session = Depends(get_db)):
-    alert = db.get(AnomalyAlert, body.alertId)
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
+def resolve_alert_legacy(
+    body: ResolveAlertBody,
+    db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
+):
+    alert = _get_scoped_alert(db, body.alertId, principal.company_id)
     alert.is_resolved = True
     alert.resolved_at = datetime.utcnow()
     db.commit()
@@ -114,9 +154,12 @@ def resolve_alert_legacy(body: ResolveAlertBody, db: Session = Depends(get_db)):
 
 
 @router.get("/api/alerts/summary")
-def alerts_summary_legacy(db: Session = Depends(get_db)):
+def alerts_summary_legacy(
+    db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
+):
     try:
-        return {"success": True, **_summary(db)}
+        return {"success": True, **_summary(db, principal.company_id)}
     except Exception as e:  # noqa: BLE001
         return {"success": False, "error": str(e)}
 
@@ -130,6 +173,7 @@ def list_alerts_v1(
     equipmentId: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
 ):
     try:
         rows = _list_alerts(
@@ -137,6 +181,7 @@ def list_alerts_v1(
             resolved=resolved,
             severity=severity,
             equipment_id=equipmentId,
+            company_id=principal.company_id,
             limit=limit,
         )
         return {
@@ -149,26 +194,33 @@ def list_alerts_v1(
 
 
 @router.get("/api/v1/alerts/summary")
-def alerts_summary_v1(db: Session = Depends(get_db)):
+def alerts_summary_v1(
+    db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
+):
     try:
-        return {"success": True, **_summary(db)}
+        return {"success": True, **_summary(db, principal.company_id)}
     except Exception as e:  # noqa: BLE001
         return {"success": False, "error": str(e)}
 
 
 @router.get("/api/v1/alerts/{alert_id}")
-def get_alert_v1(alert_id: int, db: Session = Depends(get_db)):
-    alert = db.get(AnomalyAlert, alert_id)
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
+def get_alert_v1(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
+):
+    alert = _get_scoped_alert(db, alert_id, principal.company_id)
     return {"success": True, "data": _alert_dict(alert)}
 
 
 @router.post("/api/v1/alerts/{alert_id}/resolve")
-def resolve_alert_v1(alert_id: int, db: Session = Depends(get_db)):
-    alert = db.get(AnomalyAlert, alert_id)
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
+def resolve_alert_v1(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
+):
+    alert = _get_scoped_alert(db, alert_id, principal.company_id)
     alert.is_resolved = True
     alert.resolved_at = datetime.utcnow()
     db.commit()

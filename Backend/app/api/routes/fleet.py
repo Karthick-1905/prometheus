@@ -112,7 +112,12 @@ def machine_alerts(
     )
     if not detail:
         raise HTTPException(status_code=404, detail="Equipment not found in fleet")
-    alerts = FleetService.alerts_for_equipment(db, str(equipment_id), limit=limit)
+    alerts = FleetService.alerts_for_equipment(
+        db,
+        str(equipment_id),
+        company_id=principal.company_id,
+        limit=limit,
+    )
     return {"success": True, "data": alerts}
 
 

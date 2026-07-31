@@ -51,7 +51,7 @@ export default function FleetAssets() {
         <label className="field"><span>Search assets</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, type, site, or ID" /></label>
         <label className="field"><span>Live status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option>{['WORKING', 'IDLE', 'OFF', 'STALE', 'ALERT', 'OVERDUE', 'IN_TRANSIT'].map((value) => <option key={value}>{value}</option>)}</select></label>
         <div className="toolbar-summary"><strong>{resource.data?.machines.length ?? 0}</strong><span>visible assets</span></div>
-        <div className="toolbar-summary"><strong>{resource.data?.unassigned.length ?? 0}</strong><span>need assignment</span></div>
+        <div className="toolbar-summary"><strong>{resource.data?.unassigned.length ?? 0}</strong><span>missing site or operator</span></div>
         <div className="toolbar-summary"><strong>{resource.data?.map.length ?? 0}</strong><span>mapped positions</span></div>
       </div>
       {resource.error && <FeedbackBanner tone="error">{resource.error}</FeedbackBanner>}

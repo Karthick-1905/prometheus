@@ -253,6 +253,7 @@ def seed_fleet(db_session: Session):
     db_session.add_all([tel1a, tel1b, tel2a, tel2b])
 
     alert = AnomalyAlert(
+        company_id=company.company_id,
         equipment_id=str(eq1.equipment_id),
         equipment_type="Excavator",
         site_id=str(site.site_id),

@@ -481,7 +481,12 @@ async def live_alerts(
         )
         open_alerts = []
         for m in machines:
-            for a in FleetService.alerts_for_equipment(db, str(m["equipmentId"]), limit=5):
+            for a in FleetService.alerts_for_equipment(
+                db,
+                str(m["equipmentId"]),
+                company_id=company_id,
+                limit=5,
+            ):
                 if not a.get("isResolved"):
                     open_alerts.append(a)
         return [

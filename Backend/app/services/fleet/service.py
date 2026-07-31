@@ -82,10 +82,26 @@ class FleetService:
             s = m["liveStatus"]
             by_status[s] = by_status.get(s, 0) + 1
 
+        machine_ids = {str(m["equipmentId"]) for m in machines}
+        open_alert_stmt = select(AnomalyAlert).where(
+            AnomalyAlert.is_resolved.is_(False)
+        )
+        if company_id is not None:
+            open_alert_stmt = open_alert_stmt.where(
+                AnomalyAlert.company_id == company_id
+            )
+        elif machine_ids:
+            open_alert_stmt = open_alert_stmt.where(
+                AnomalyAlert.equipment_id.in_(machine_ids)
+            )
+        else:
+            open_alert_stmt = open_alert_stmt.where(False)
+        open_alerts = list(db.execute(open_alert_stmt).scalars())
         open_critical = sum(
-            1
-            for m in machines
-            if m.get("highestSeverity") == "CRITICAL" and m.get("openAlertCount", 0) > 0
+            1 for alert in open_alerts if alert.severity == AnomalySeverity.CRITICAL
+        )
+        machines_with_open_alerts = sum(
+            1 for m in machines if m.get("openAlertCount", 0) > 0
         )
         expiring = FleetService.contracts_expiring(db, company_id=company_id, days=7)
         return {
@@ -96,10 +112,14 @@ class FleetService:
                 "idle": by_status.get("IDLE", 0),
                 "off": by_status.get("OFF", 0),
                 "overdue": by_status.get("OVERDUE", 0),
-                "withOpenAlerts": sum(1 for m in machines if m.get("openAlertCount", 0) > 0),
+                "openAlerts": len(open_alerts),
+                "machinesWithOpenAlerts": machines_with_open_alerts,
+                # Retained for compatibility; its name now has an explicit replacement.
+                "withOpenAlerts": machines_with_open_alerts,
                 "staleTelemetry": by_status.get("STALE", 0),
                 "inTransit": by_status.get("IN_TRANSIT", 0),
                 "alert": by_status.get("ALERT", 0),
+                "maintenance": by_status.get("MAINTENANCE", 0),
             },
             "statusBreakdown": by_status,
             "contractsExpiring7d": len(expiring),
@@ -118,7 +138,12 @@ class FleetService:
                 m["telemetryHistory"] = FleetService.telemetry_history(
                     db, equipment_id, limit=50
                 )
-                m["alerts"] = FleetService.alerts_for_equipment(db, str(equipment_id), limit=20)
+                m["alerts"] = FleetService.alerts_for_equipment(
+                    db,
+                    str(equipment_id),
+                    company_id=company_id,
+                    limit=20,
+                )
                 return m
         return None
 
@@ -188,7 +213,10 @@ class FleetService:
         """Synthetic event feed from recent alerts + telemetry timestamps."""
         events: list[dict[str, Any]] = []
 
-        alert_stmt = select(AnomalyAlert).order_by(desc(AnomalyAlert.detected_at)).limit(limit)
+        alert_stmt = select(AnomalyAlert)
+        if company_id is not None:
+            alert_stmt = alert_stmt.where(AnomalyAlert.company_id == company_id)
+        alert_stmt = alert_stmt.order_by(desc(AnomalyAlert.detected_at)).limit(limit)
         for a in db.execute(alert_stmt).scalars().all():
             if equipment_id is not None and str(a.equipment_id) != str(equipment_id):
                 continue
@@ -264,14 +292,18 @@ class FleetService:
 
     @staticmethod
     def alerts_for_equipment(
-        db: Session, equipment_id: str, *, limit: int = 20
+        db: Session,
+        equipment_id: str,
+        *,
+        company_id: Optional[int] = None,
+        limit: int = 20,
     ) -> list[dict[str, Any]]:
-        stmt = (
-            select(AnomalyAlert)
-            .where(AnomalyAlert.equipment_id == str(equipment_id))
-            .order_by(desc(AnomalyAlert.detected_at))
-            .limit(limit)
+        stmt = select(AnomalyAlert).where(
+            AnomalyAlert.equipment_id == str(equipment_id)
         )
+        if company_id is not None:
+            stmt = stmt.where(AnomalyAlert.company_id == company_id)
+        stmt = stmt.order_by(desc(AnomalyAlert.detected_at)).limit(limit)
         return [FleetService._alert_dict(a) for a in db.execute(stmt).scalars().all()]
 
     @staticmethod
@@ -355,7 +387,9 @@ class FleetService:
         eq_id = contract.equipment_id
         tel = FleetService._latest_telemetry(db, eq_id)
         site, operator_id = FleetService._active_assignment(contract)
-        open_alerts, highest = FleetService._open_alert_stats(db, str(eq_id))
+        open_alerts, highest = FleetService._open_alert_stats(
+            db, str(eq_id), company_id=contract.company_id
+        )
 
         last_seen = tel.timestamp if tel else None
         live = derive_live_status(
@@ -442,12 +476,14 @@ class FleetService:
 
     @staticmethod
     def _open_alert_stats(
-        db: Session, equipment_id: str
+        db: Session, equipment_id: str, *, company_id: Optional[int] = None
     ) -> tuple[int, Optional[str]]:
         stmt = select(AnomalyAlert).where(
             AnomalyAlert.equipment_id == equipment_id,
             AnomalyAlert.is_resolved.is_(False),
         )
+        if company_id is not None:
+            stmt = stmt.where(AnomalyAlert.company_id == company_id)
         alerts = list(db.execute(stmt).scalars().all())
         if not alerts:
             return 0, None

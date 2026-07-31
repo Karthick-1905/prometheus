@@ -63,6 +63,24 @@ def _parse_role(raw: str) -> DashboardRole:
         raise HTTPException(status_code=403, detail=f"Unsupported dashboard role: {raw}") from exc
 
 
+def _require_principal_scope(principal: DashboardPrincipal) -> DashboardPrincipal:
+    """Fail closed when a tenant or dealer identity has no corresponding scope."""
+    if (
+        principal.role
+        in {
+            DashboardRole.FLEET_MANAGER,
+            DashboardRole.SITE_MANAGER,
+            DashboardRole.SITE_ENGINEER,
+            DashboardRole.OPERATOR,
+        }
+        and principal.company_id is None
+    ):
+        raise HTTPException(status_code=403, detail="Company scope required for this role")
+    if principal.is_dealer and principal.dealer_id is None:
+        raise HTTPException(status_code=403, detail="Dealer scope required for this role")
+    return principal
+
+
 def _from_headers(
     *,
     x_actor_id: Optional[str],
@@ -83,13 +101,15 @@ def _from_headers(
         company_id = 1
     if dealer_id is None and role in {DashboardRole.DEALER, DashboardRole.DEALER_MANAGER}:
         dealer_id = 1
-    return DashboardPrincipal(
-        actor_id=x_actor_id or "demo-user",
-        role=role,
-        company_id=company_id,
-        dealer_id=dealer_id,
-        site_id=x_site_id,
-        auth_mode="headers",
+    return _require_principal_scope(
+        DashboardPrincipal(
+            actor_id=x_actor_id or "demo-user",
+            role=role,
+            company_id=company_id,
+            dealer_id=dealer_id,
+            site_id=x_site_id,
+            auth_mode="headers",
+        )
     )
 
 
@@ -109,13 +129,15 @@ def get_dashboard_principal(
         except TokenError as exc:
             raise HTTPException(status_code=401, detail=f"Invalid token: {exc}") from exc
         role = _parse_role(str(payload.get("role") or DashboardRole.FLEET_MANAGER.value))
-        return DashboardPrincipal(
-            actor_id=str(payload.get("sub") or "jwt-user"),
-            role=role,
-            company_id=payload.get("company_id"),
-            dealer_id=payload.get("dealer_id"),
-            site_id=payload.get("site_id"),
-            auth_mode="jwt",
+        return _require_principal_scope(
+            DashboardPrincipal(
+                actor_id=str(payload.get("sub") or "jwt-user"),
+                role=role,
+                company_id=payload.get("company_id"),
+                dealer_id=payload.get("dealer_id"),
+                site_id=payload.get("site_id"),
+                auth_mode="jwt",
+            )
         )
 
     settings = get_settings()

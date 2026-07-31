@@ -14,6 +14,9 @@ def test_site_summary_and_equipment(client, site_headers, seed_fleet):
     summary = client.get(f"/api/v1/sites/{sid}/summary", headers=site_headers)
     assert summary.status_code == 200
     assert summary.json()["data"]["activeAssignments"] >= 1
+    # The assigned excavator has a critical alert, so assignment state must not
+    # be mislabeled as live WORKING.
+    assert summary.json()["data"]["liveWorking"] == 0
 
     eq = client.get(f"/api/v1/sites/{sid}/equipment", headers=site_headers)
     assert eq.status_code == 200

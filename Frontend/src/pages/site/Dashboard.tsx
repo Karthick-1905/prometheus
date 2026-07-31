@@ -78,7 +78,7 @@ export default function SiteDashboard() {
         <div className="dashboard-content">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <StatCard label="Active assignments" value={summary?.activeAssignments ?? 0} icon="assignment" />
-            <StatCard label="Working" value={summary?.equipment.filter((item) => item.status === 'ACTIVE').length ?? 0} icon="play_circle" accent="success" />
+            <StatCard label="Live working" value={Number(summary?.liveWorking ?? 0)} icon="play_circle" accent="success" />
             <StatCard label="Live updates" value={live.length} icon="sensors" />
             <StatCard label="Site status" value={summary?.status ?? '—'} icon="domain" />
           </div>

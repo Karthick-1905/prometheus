@@ -14,13 +14,11 @@ export default function FleetAnomalyDetection() {
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const resource = useAsync(async () => {
-    const [list, summary, legacy, legacySummary] = await Promise.all([
+    const [list, summary] = await Promise.all([
       alertApi.list({ resolved, severity: severity || undefined, limit: 200 }),
       alertApi.summary(),
-      alertApi.legacyList(resolved, 200),
-      alertApi.legacySummary(),
     ]);
-    return { alerts: list.data, summary, legacyCount: legacy.alerts.length, legacySummary };
+    return { alerts: list.data, summary };
   }, [resolved, severity]);
 
   const inspect = async (alert: Alert) => {
@@ -32,12 +30,11 @@ export default function FleetAnomalyDetection() {
     }
   };
 
-  const resolve = async (alert: Alert, legacy = false) => {
+  const resolve = async (alert: Alert) => {
     setActionError(null);
     try {
-      if (legacy) await alertApi.legacyResolve(alert.alertId);
-      else await alertApi.resolve(alert.alertId);
-      setNotice(`Alert #${alert.alertId} resolved${legacy ? ' through the compatibility API' : ''}.`);
+      await alertApi.resolve(alert.alertId);
+      setNotice(`Alert #${alert.alertId} resolved.`);
       setSelected(null);
       await resource.reload();
     } catch (error) {
@@ -55,12 +52,11 @@ export default function FleetAnomalyDetection() {
         <label className="field"><span>Severity</span><select value={severity} onChange={(event) => setSeverity(event.target.value)}><option value="">All severities</option><option>CRITICAL</option><option>WARNING</option><option>INFO</option></select></label>
         <div className="toolbar-summary"><strong>{String(resource.data?.summary.open ?? '—')}</strong><span>open alerts</span></div>
         <div className="toolbar-summary"><strong>{String(resource.data?.summary.critical ?? '—')}</strong><span>critical</span></div>
-        <div className="toolbar-summary"><strong>{resource.data?.legacyCount ?? '—'}</strong><span>legacy parity rows</span></div>
       </div>
       {resource.loading ? <PageSkeleton rows={8} /> : (
         <Panel>
           {!resource.data?.alerts.length ? <EmptyState title={resolved ? 'No resolved alerts' : 'No open alerts'} message="Change the filters or wait for anomaly detection to produce a new alert." /> : (
-            <div className="data-list">{resource.data.alerts.map((alert) => <article className="alert-row" key={alert.alertId}><div className="alert-row-head"><StatusBadge status={alert.severity ?? 'INFO'} /><span>Alert #{alert.alertId}</span><time>{alert.detectedAt ? new Date(alert.detectedAt).toLocaleString() : 'Unknown time'}</time></div><h3>{alert.description ?? alert.anomalyType ?? 'Anomaly alert'}</h3><p>{alert.recommendation ?? 'Inspect the equipment and telemetry context before acting.'}</p><footer><span>Equipment {alert.equipmentId} · {alert.equipmentType ?? 'Unknown type'}</span><div><button className="btn-secondary" type="button" onClick={() => void inspect(alert)}>View details</button>{!alert.isResolved && <><button className="btn-primary" type="button" onClick={() => void resolve(alert)}>Resolve</button><button className="btn-secondary" type="button" onClick={() => void resolve(alert, true)}>Legacy resolve</button></>}</div></footer></article>)}</div>
+            <div className="data-list">{resource.data.alerts.map((alert) => <article className="alert-row" key={alert.alertId}><div className="alert-row-head"><StatusBadge status={alert.severity ?? 'INFO'} /><span>Alert #{alert.alertId}</span><time>{alert.detectedAt ? new Date(alert.detectedAt).toLocaleString() : 'Unknown time'}</time></div><h3>{alert.description ?? alert.anomalyType ?? 'Anomaly alert'}</h3><p>{alert.recommendation ?? 'Inspect the equipment and telemetry context before acting.'}</p><footer><span>Equipment {alert.equipmentId} · {alert.equipmentType ?? 'Unknown type'}</span><div><button className="btn-secondary" type="button" onClick={() => void inspect(alert)}>View details</button>{!alert.isResolved && <button className="btn-primary" type="button" onClick={() => void resolve(alert)}>Resolve</button>}</div></footer></article>)}</div>
           )}
         </Panel>
       )}

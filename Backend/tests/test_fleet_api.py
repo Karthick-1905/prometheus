@@ -23,6 +23,8 @@ def test_fleet_overview(client, fleet_headers, seed_fleet):
     assert body["success"] is True
     assert body["totals"]["machinesRented"] == 2
     assert body["totals"]["overdue"] >= 1
+    assert body["totals"]["openAlerts"] == 1
+    assert body["totals"]["machinesWithOpenAlerts"] == 1
     assert body["criticalAlerts"] >= 1
 
 
@@ -123,3 +125,50 @@ def test_dealer_role_forbidden_from_fleet(client):
 def test_machine_not_found(client, fleet_headers):
     res = client.get("/api/v1/fleet/machines/99999", headers=fleet_headers)
     assert res.status_code == 404
+
+
+def test_compatibility_telemetry_is_scoped_and_uses_fuel_percentage(
+    client, fleet_headers, seed_fleet, db_session
+):
+    from datetime import datetime
+    from decimal import Decimal
+
+    from app.models.domain import Company, Equipment, EquipmentTelemetry, RentalContract
+    from app.models.enums import EquipmentStatus, RentalContractStatus
+
+    other_company = Company(company_name="Other Telemetry Tenant")
+    other_equipment = Equipment(
+        dealer_id=seed_fleet["dealer_id"],
+        equipment_name="Other Loader",
+        equipment_type="Loader",
+        status=EquipmentStatus.RENTED,
+    )
+    db_session.add_all([other_company, other_equipment])
+    db_session.flush()
+    db_session.add_all(
+        [
+            RentalContract(
+                dealer_id=seed_fleet["dealer_id"],
+                company_id=other_company.company_id,
+                equipment_id=other_equipment.equipment_id,
+                rental_status=RentalContractStatus.ACTIVE,
+            ),
+            EquipmentTelemetry(
+                telemetry_id=99,
+                equipment_id=other_equipment.equipment_id,
+                timestamp=datetime.utcnow(),
+                fuel_level=Decimal("33.0"),
+            ),
+        ]
+    )
+    db_session.commit()
+
+    res = client.get("/api/telemetry", headers=fleet_headers)
+    assert res.status_code == 200
+    snapshot = res.json()["snapshot"]
+    assert {row["equipmentId"] for row in snapshot} == set(seed_fleet["equipment_ids"])
+    excavator = next(
+        row for row in snapshot if row["equipmentId"] == seed_fleet["equipment_ids"][0]
+    )
+    assert excavator["fuelLevel"] == 72.5
+    assert excavator["fuelLevel"] != 140.0

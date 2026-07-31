@@ -74,12 +74,18 @@ class AnomalyDetectionService:
 
         rental_days = 15.0
         days_elapsed = 1.0
+        contract: Optional[RentalContract] = None
         if eq_id:
             stmt = (
                 select(RentalContract)
                 .where(
                     RentalContract.equipment_id == eq_id,
-                    RentalContract.rental_status == RentalContractStatus.ACTIVE,
+                    RentalContract.rental_status.in_(
+                        [
+                            RentalContractStatus.ACTIVE,
+                            RentalContractStatus.OVERDUE,
+                        ]
+                    ),
                 )
                 .order_by(RentalContract.rental_start.desc())
                 .limit(1)
@@ -144,6 +150,7 @@ class AnomalyDetectionService:
         saved: list[AnomalyAlert] = []
         for v in violations:
             alert = AnomalyAlert(
+                company_id=contract.company_id if contract else None,
                 equipment_id=str(eq_raw),
                 equipment_type=telemetry.get("equipmentType"),
                 site_id=telemetry.get("siteId"),

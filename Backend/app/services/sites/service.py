@@ -22,6 +22,7 @@ from app.models.enums import (
     RentalContractStatus,
     UserRole,
 )
+from app.services.fleet import FleetService
 
 
 class SiteService:
@@ -80,9 +81,18 @@ class SiteService:
         if not site:
             raise HTTPException(status_code=404, detail="Site not found")
         active = SiteService.list_active_assignments(db, site_id=site_id)
+        live_machines = FleetService.list_machines(
+            db, company_id=company_id, site_id=site_id, limit=500
+        )
+        live_statuses: dict[str, int] = {}
+        for machine in live_machines:
+            status = str(machine.get("liveStatus") or "UNKNOWN")
+            live_statuses[status] = live_statuses.get(status, 0) + 1
         return {
             **site,
             "activeAssignments": len(active),
+            "liveWorking": live_statuses.get("WORKING", 0),
+            "liveStatusBreakdown": live_statuses,
             "equipment": active,
         }
 

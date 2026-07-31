@@ -230,6 +230,12 @@ class AnomalyAlert(Base):
     )
 
     alert_id: Mapped[int] = mapped_column("alert_id", Integer, primary_key=True, autoincrement=True)
+    company_id: Mapped[Optional[int]] = mapped_column(
+        "company_id",
+        Integer,
+        ForeignKey("Company.company_id", ondelete="CASCADE"),
+        nullable=True,
+    )
     equipment_id: Mapped[str] = mapped_column("equipment_id", String)
     equipment_type: Mapped[Optional[str]] = mapped_column("equipment_type", String)
     site_id: Mapped[Optional[str]] = mapped_column("site_id", String)

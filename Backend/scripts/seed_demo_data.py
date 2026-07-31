@@ -244,16 +244,17 @@ def seed(db: Session) -> dict:
         company = companies[i % len(companies)]
         start = now - timedelta(days=rng.randint(3, 21))
 
-        # ~12% overdue (past return), ~10% completed history, rest active with
-        # expected_return still ahead so "machines on rent" is mostly healthy.
-        roll = rng.random()
-        if i % 11 == 0 or roll < 0.10:
+        # Keep every company balanced instead of letting RNG produce an
+        # overdue-heavy tenant. With round-robin company assignment this yields
+        # at most one overdue and one completed contract per ten company units.
+        company_slot = i // len(companies)
+        if company_slot > 0 and company_slot % 10 == 0:
             status = RentalContractStatus.COMPLETED
             expected = start + timedelta(days=rng.randint(7, 18))
             actual = expected - timedelta(days=1)
             if eq.status == EquipmentStatus.RENTED:
                 eq.status = EquipmentStatus.AVAILABLE
-        elif roll < 0.22:
+        elif company_slot == 4:
             status = RentalContractStatus.OVERDUE
             expected = now - timedelta(days=rng.randint(1, 12))
             actual = None
@@ -458,6 +459,7 @@ def seed(db: Session) -> dict:
 
         alerts.append(
             AnomalyAlert(
+                company_id=c.company_id if c else None,
                 equipment_id=str(eq.equipment_id),
                 equipment_type=eq.equipment_type,
                 site_id=str(site_id) if site_id else None,

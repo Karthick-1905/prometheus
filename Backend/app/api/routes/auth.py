@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.db.session import get_db
+from app.models.domain import Dealer, User
 from app.schemas.auth import LoginRequest
 from app.security.dashboard_access import (
     DashboardPrincipal,
@@ -39,7 +43,7 @@ def me(principal: DashboardPrincipal = Depends(get_dashboard_principal)):
 
 
 @router.post("/login")
-def login(body: LoginRequest):
+def login(body: LoginRequest, db: Session = Depends(get_db)):
     """
     Issue a JWT for dashboard clients.
 
@@ -52,6 +56,32 @@ def login(body: LoginRequest):
 
     company_id = body.companyId
     dealer_id = body.dealerId
+    normalized_email = body.email.strip().lower()
+    if role in {
+        "FLEET_MANAGER",
+        "SITE_MANAGER",
+        "SITE_ENGINEER",
+        "OPERATOR",
+    }:
+        matched_user = db.execute(
+            select(User)
+            .where(User.email.is_not(None), func.lower(User.email) == normalized_email)
+            .limit(1)
+        ).scalar_one_or_none()
+        if matched_user is not None:
+            company_id = matched_user.company_id
+    elif role in {"DEALER", "DEALER_MANAGER"}:
+        matched_dealer = db.execute(
+            select(Dealer)
+            .where(
+                Dealer.email.is_not(None),
+                func.lower(Dealer.email) == normalized_email,
+            )
+            .limit(1)
+        ).scalar_one_or_none()
+        if matched_dealer is not None:
+            dealer_id = matched_dealer.dealer_id
+
     if company_id is None and role in {
         "FLEET_MANAGER",
         "SITE_MANAGER",

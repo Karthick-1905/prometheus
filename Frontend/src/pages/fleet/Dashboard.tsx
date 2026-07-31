@@ -123,14 +123,8 @@ export default function FleetDashboard() {
   const overdue = resource.data?.overdue ?? [];
 
   const rented = n(totals.machinesRented);
-  const working = n(totals.working);
-  const idle = n(totals.idle);
-  const off = n(totals.off);
-  const overdueStatus = n(totals.overdue);
-  const alertStatus = n(totals.alert);
-  const staleStatus = n(totals.staleTelemetry);
-  const inTransitStatus = n(totals.inTransit);
-  const openAlerts = n(totals.withOpenAlerts);
+  const openAlerts = n(totals.openAlerts);
+  const machinesWithOpenAlerts = n(totals.machinesWithOpenAlerts ?? totals.withOpenAlerts);
   const criticalAlerts = n(resource.data?.overview.criticalAlerts);
   const utilPct = n(usage.utilizationPct);
   const runtimeH = n(usage.totalRuntimeHours);
@@ -139,18 +133,22 @@ export default function FleetDashboard() {
   const dueSoon = expiring.length;
   const donut = donutStroke(utilPct);
 
-  // Full live-status mix so the chips always sum to machines on rent.
-  const statusMix = (
-    [
-      { label: 'Working', value: working },
-      { label: 'Idle', value: idle },
-      { label: 'Off', value: off },
-      { label: 'In transit', value: inTransitStatus },
-      { label: 'Alert', value: alertStatus },
-      { label: 'Stale', value: staleStatus },
-      { label: 'Overdue', value: overdueStatus },
-    ] as const
-  ).filter((row) => row.value > 0);
+  // Render the complete backend status universe, including future statuses.
+  const statusOrder = ['WORKING', 'IDLE', 'OFF', 'IN_TRANSIT', 'ALERT', 'STALE', 'OVERDUE', 'MAINTENANCE'];
+  const statusBreakdown = (resource.data?.overview.statusBreakdown ?? {}) as Record<string, unknown>;
+  const staleCount = n(statusBreakdown.STALE);
+  const statusMix = Object.entries(statusBreakdown)
+    .map(([status, value]) => ({
+      status,
+      label: status.replaceAll('_', ' ').toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase()),
+      value: n(value),
+    }))
+    .filter((row) => row.value > 0)
+    .sort((a, b) => {
+      const aIndex = statusOrder.indexOf(a.status);
+      const bIndex = statusOrder.indexOf(b.status);
+      return (aIndex < 0 ? statusOrder.length : aIndex) - (bIndex < 0 ? statusOrder.length : bIndex);
+    });
 
   const typeBars = [...byType]
     .sort((a, b) => n(b.runtimeHours) - n(a.runtimeHours))
@@ -233,6 +231,11 @@ export default function FleetDashboard() {
                   ))
                 )}
               </div>
+              {staleCount > 0 && (
+                <p className="fd-metric-caption">
+                  {staleCount} telemetry {staleCount === 1 ? 'feed is' : 'feeds are'} stale; live activity resumes when new samples arrive.
+                </p>
+              )}
             </article>
 
             <article className="fd-metric">
@@ -257,21 +260,22 @@ export default function FleetDashboard() {
               </div>
               <strong>{openAlerts}</strong>
               <p>
-                <em>{criticalAlerts}</em> critical ·{' '}
+                <em>{criticalAlerts}</em> critical · {machinesWithOpenAlerts} machines affected ·{' '}
                 <Link to="/fleet/anomalies">Triage</Link>
               </p>
+              <p className="fd-metric-caption">Info-only alerts do not change a machine&apos;s live status.</p>
             </article>
 
             <article className="fd-metric">
               <div className="fd-metric-top">
-                <span>Due in 7 days</span>
+                <span>Returns to review</span>
                 <span className="material-symbols-outlined" aria-hidden="true">
                   calendar_clock
                 </span>
               </div>
-              <strong>{dueSoon}</strong>
+              <strong>{dueSoon + overdue.length}</strong>
               <p>
-                <em>{overdue.length}</em> already overdue
+                <em>{overdue.length}</em> overdue · {dueSoon} due within 7 days
               </p>
             </article>
           </div>
