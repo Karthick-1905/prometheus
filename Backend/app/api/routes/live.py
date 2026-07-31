@@ -10,7 +10,7 @@ import json
 import queue
 import threading
 from datetime import datetime
-from typing import AsyncIterator, Callable, Optional, Tuple
+from typing import Any, AsyncIterator, Callable, Optional, Tuple
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
@@ -218,6 +218,142 @@ async def _redis_log_stream(
         thread.join(timeout=1.5)
 
 
+def _latest_geofence_coordinates(
+    events: list[dict[str, Any]],
+    *,
+    company_id: Optional[int],
+) -> list[dict[str, Any]]:
+    latest: dict[str, dict[str, Any]] = {}
+    for event in events:
+        if event.get("type") != "GEOFENCE_BATCH":
+            continue
+        if (
+            company_id is not None
+            and event.get("companyId") is not None
+            and int(event["companyId"]) != company_id
+        ):
+            continue
+        for coordinate in event.get("coordinates") or []:
+            equipment_id = str(coordinate.get("equipmentId") or "")
+            if equipment_id and equipment_id not in latest:
+                latest[equipment_id] = coordinate
+    return list(latest.values())
+
+
+async def _redis_geofence_stream(
+    request: Request,
+    *,
+    company_id: Optional[int],
+    max_seconds: float,
+    recent_limit: int,
+) -> AsyncIterator[str]:
+    """Stream batched coordinate evaluations produced by ingestion."""
+    status = redis_status()
+    yield _sse(
+        "geofence.ready",
+        {
+            "source": "redis" if status.get("ok") else "unavailable",
+            "companyId": company_id,
+            "radiusUnit": "meters",
+            "ts": datetime.utcnow().isoformat(),
+        },
+        event_id="geo-ready",
+    )
+    if not status.get("ok"):
+        yield _sse(
+            "error",
+            {
+                "message": "Redis is unavailable; live geofence batches cannot be delivered.",
+                "ts": datetime.utcnow().isoformat(),
+            },
+            event_id="geo-error",
+        )
+        return
+
+    recent = recent_events(limit=recent_limit)
+    coordinates = _latest_geofence_coordinates(recent, company_id=company_id)
+    yield _sse(
+        "geofence.snapshot",
+        {
+            "coordinates": coordinates,
+            "count": len(coordinates),
+            "ts": datetime.utcnow().isoformat(),
+        },
+        event_id="geo-snapshot",
+    )
+
+    stop = threading.Event()
+    event_queue: queue.Queue = queue.Queue(maxsize=200)
+
+    def _reader():
+        try:
+            for event in subscribe_events(stop):
+                if event.get("type") != "GEOFENCE_BATCH":
+                    continue
+                if (
+                    company_id is not None
+                    and event.get("companyId") is not None
+                    and int(event["companyId"]) != company_id
+                ):
+                    continue
+                try:
+                    event_queue.put(event, timeout=0.2)
+                except queue.Full:
+                    pass
+        except Exception as exc:  # noqa: BLE001
+            try:
+                event_queue.put({"__error__": str(exc)}, timeout=0.2)
+            except queue.Full:
+                pass
+
+    thread = threading.Thread(
+        target=_reader,
+        name="redis-live-geofences",
+        daemon=True,
+    )
+    thread.start()
+    started = asyncio.get_event_loop().time()
+    tick = 0
+    try:
+        while True:
+            if await request.is_disconnected():
+                break
+            if max_seconds > 0 and (asyncio.get_event_loop().time() - started) >= max_seconds:
+                break
+            tick += 1
+            try:
+                item = event_queue.get_nowait()
+            except queue.Empty:
+                item = None
+            if item:
+                if "__error__" in item:
+                    yield _sse(
+                        "error",
+                        {"message": item["__error__"], "ts": datetime.utcnow().isoformat()},
+                        event_id=f"geo-error-{tick}",
+                    )
+                else:
+                    yield _sse(
+                        "geofence.batch",
+                        item,
+                        event_id=str(item.get("id") or item.get("batchId") or tick),
+                    )
+            if tick % 4 == 0:
+                yield _sse(
+                    "heartbeat",
+                    {
+                        "tick": tick,
+                        "source": "redis-geofence",
+                        "ts": datetime.utcnow().isoformat(),
+                    },
+                    event_id=f"geo-hb-{tick}",
+                )
+            await asyncio.sleep(0.25)
+    finally:
+        stop.set()
+        thread.join(timeout=1.5)
+
+
 @router.get("/fleet")
 async def live_fleet(
     request: Request,
@@ -366,6 +502,30 @@ async def live_alerts(
             interval_sec=intervalMs / 1000.0,
             max_ticks=maxTicks,
             producer=producer,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/geofences")
+async def live_geofences(
+    request: Request,
+    maxSeconds: int = Query(300, ge=5, le=3600),
+    recentLimit: int = Query(100, ge=1, le=200),
+    principal: DashboardPrincipal = Depends(get_dashboard_principal),
+):
+    require_fleet_access(principal)
+    return StreamingResponse(
+        _redis_geofence_stream(
+            request,
+            company_id=principal.company_id,
+            max_seconds=float(maxSeconds),
+            recent_limit=recentLimit,
         ),
         media_type="text/event-stream",
         headers={

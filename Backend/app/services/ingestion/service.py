@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models.domain import EquipmentTelemetry
 from app.services.anomaly_detection.service import AnomalyDetectionService
+from app.services.geofencing import GeofencingService, geofence_batch_service
 from app.services.redis_bus import publish_live_event
 
 
@@ -55,10 +56,25 @@ class IngestionService:
             stored = False
             store_error = str(exc)
 
+        geofence = GeofencingService.evaluate(
+            db,
+            telemetry,
+            equipment_id=equipment_id,
+        )
+        enriched_telemetry = {
+            **telemetry,
+            "siteId": geofence.get("siteId") or telemetry.get("siteId"),
+            "distanceFromSiteCenterMeters": geofence.get("distanceMeters"),
+            "geofenceRadiusMeters": geofence.get("radiusMeters"),
+            "isInsideGeofence": geofence.get("isAtSite"),
+            "geofenceStatus": geofence.get("status"),
+        }
+        geofence_batch_published = geofence_batch_service.add(geofence)
+
         alerts = []
         anomaly_error = None
         try:
-            alerts = AnomalyDetectionService.detect_and_record(db, telemetry)
+            alerts = AnomalyDetectionService.detect_and_record(db, enriched_telemetry)
         except Exception as exc:  # noqa: BLE001
             db.rollback()
             anomaly_error = str(exc)
@@ -81,6 +97,7 @@ class IngestionService:
                 "equipmentType": equipment_type,
                 "siteId": str(site_id) if site_id is not None else None,
                 "operatorId": telemetry.get("operatorId"),
+                "companyId": geofence.get("companyId"),
                 "message": (
                     f"Telemetry {eq_raw}"
                     f" engine={telemetry.get('engineStatus')}"
@@ -105,6 +122,7 @@ class IngestionService:
                     "rentalStatus": telemetry.get("rentalStatus"),
                     "timestamp": ts.isoformat() if hasattr(ts, "isoformat") else str(ts),
                 },
+                "geofence": geofence,
                 "alertCount": len(alert_payloads),
                 "alerts": alert_payloads,
             }
@@ -132,6 +150,8 @@ class IngestionService:
             "alertCount": len(alert_payloads),
             "alerts": alert_payloads,
             "redisPublished": redis_ok,
+            "geofence": geofence,
+            "geofenceBatchPublished": geofence_batch_published,
         }
         if anomaly_error:
             result["anomalyError"] = anomaly_error

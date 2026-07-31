@@ -273,6 +273,16 @@ export const liveApi = {
     ),
   alerts: (onEvent: Parameters<typeof readEventStream>[1], signal?: AbortSignal) =>
     readEventStream('/api/v1/live/alerts?intervalMs=1000&maxTicks=120', onEvent, signal),
+  geofences: (
+    onEvent: Parameters<typeof readEventStream>[1],
+    signal?: AbortSignal,
+    maxSeconds = 300,
+  ) =>
+    readEventStream(
+      `/api/v1/live/geofences?maxSeconds=${maxSeconds}&recentLimit=100`,
+      onEvent,
+      signal,
+    ),
   site: (
     siteId: number,
     onEvent: Parameters<typeof readEventStream>[1],

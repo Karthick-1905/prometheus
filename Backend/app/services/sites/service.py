@@ -53,6 +53,8 @@ class SiteService:
         company_id: int,
         site_name: str,
         location: Optional[str] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
         status: str = "ACTIVE",
     ) -> dict[str, Any]:
         try:
@@ -63,6 +65,8 @@ class SiteService:
             company_id=company_id,
             site_name=site_name,
             location=location,
+            latitude=latitude,
+            longitude=longitude,
             status=st,
         )
         db.add(site)
@@ -461,6 +465,8 @@ class SiteService:
             "companyId": s.company_id,
             "siteName": s.site_name,
             "location": s.location,
+            "latitude": float(s.latitude) if s.latitude is not None else None,
+            "longitude": float(s.longitude) if s.longitude is not None else None,
             "status": s.status.value if s.status else None,
         }
 

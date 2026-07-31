@@ -60,6 +60,7 @@
   {"method":"GET","path":"/api/v1/live/fleet","client":"liveApi.fleet","surface":"Fleet Live Telemetry"},
   {"method":"GET","path":"/api/v1/live/logs","client":"liveApi.logs","surface":"Fleet Live Telemetry"},
   {"method":"GET","path":"/api/v1/live/alerts","client":"liveApi.alerts","surface":"Fleet Live Telemetry"},
+  {"method":"GET","path":"/api/v1/live/geofences","client":"liveApi.geofences","surface":"Fleet Live Telemetry geofence presence"},
   {"method":"GET","path":"/api/v1/live/site/{site_id}","client":"liveApi.site","surface":"Site Dashboard live updates"},
   {"method":"GET","path":"/api/v1/live/redis/status","client":"liveApi.redisStatus","surface":"Fleet Live Telemetry source readiness"},
   {"method":"GET","path":"/api/v1/notifications","client":"notificationsApi.list","surface":"Notifications inbox"},

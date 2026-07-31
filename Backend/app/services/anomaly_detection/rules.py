@@ -15,6 +15,7 @@ THRESHOLDS = {
     "IDLE_HOURS_DELTA_MAX": 1.0,
     "FUEL_DELTA_MAX": 10.0,
     "GEOFENCE_DISTANCE_MAX": 0.05,
+    "GEOFENCE_DISTANCE_METERS_MAX": 250.0,
 }
 
 
@@ -176,6 +177,26 @@ def detect_rules(t: dict[str, Any]) -> list[DetectedAnomaly]:
                 "Contact site operator; verify relocation authorization.",
                 f"distance={f['distanceFromSiteCenter']:.4f}",
                 f"> {THRESHOLDS['GEOFENCE_DISTANCE_MAX']}",
+                "RULE",
+            )
+        )
+
+    distance_meters = float(t.get("distanceFromSiteCenterMeters") or 0)
+    radius_meters = float(
+        t.get("geofenceRadiusMeters") or THRESHOLDS["GEOFENCE_DISTANCE_METERS_MAX"]
+    )
+    if (
+        distance_meters > radius_meters
+        and not any(item.anomaly_type == AnomalyType.GEOFENCE_VIOLATION for item in out)
+    ):
+        out.append(
+            DetectedAnomaly(
+                AnomalyType.GEOFENCE_VIOLATION,
+                AnomalySeverity.WARNING,
+                f"{eq} is {distance_meters:.0f} m from its assigned site.",
+                "Contact the site operator and verify that relocation is authorized.",
+                f"distance={distance_meters:.1f}m",
+                f"> {radius_meters:.1f}m",
                 "RULE",
             )
         )

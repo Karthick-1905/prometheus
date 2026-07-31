@@ -11,7 +11,13 @@ import { getErrorMessage, useAsync } from '../../hooks/useAsync';
 
 export default function SiteDashboard() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [form, setForm] = useState({ siteName: '', location: '', status: 'ACTIVE' });
+  const [form, setForm] = useState({
+    siteName: '',
+    location: '',
+    latitude: '',
+    longitude: '',
+    status: 'ACTIVE',
+  });
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
   const [live, setLive] = useState<StreamEvent[]>([]);
   const sites = useAsync(() => siteApi.sites(), []);
@@ -39,9 +45,19 @@ export default function SiteDashboard() {
   const createSite = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      const created = await siteApi.createSite(form);
+      const created = await siteApi.createSite({
+        ...form,
+        latitude: form.latitude === '' ? null : Number(form.latitude),
+        longitude: form.longitude === '' ? null : Number(form.longitude),
+      });
       setMessage({ tone: 'success', text: `${created.data.siteName} created.` });
-      setForm({ siteName: '', location: '', status: 'ACTIVE' });
+      setForm({
+        siteName: '',
+        location: '',
+        latitude: '',
+        longitude: '',
+        status: 'ACTIVE',
+      });
       await sites.reload();
       setSelectedId(created.data.siteId);
     } catch (error) {
@@ -71,7 +87,17 @@ export default function SiteDashboard() {
               {!summary?.equipment.length ? <EmptyState title="No equipment assigned" message="Create an assignment or check equipment out to this site." /> : <div className="data-list">{summary.equipment.map((assignment) => <div className="data-list-row compact" key={assignment.assignmentId}><div><strong>{assignment.equipmentName ?? `Equipment ${assignment.equipmentId}`}</strong><span>Contract #{assignment.contractId} · checked out {assignment.checkoutTime ? new Date(assignment.checkoutTime).toLocaleString() : '—'}</span></div><StatusBadge status={assignment.status ?? 'UNKNOWN'} /></div>)}</div>}
             </Panel>
             <Panel title="Create site">
-              <form className="stack-form" onSubmit={createSite}><label className="field"><span>Site name</span><input value={form.siteName} onChange={(event) => setForm((current) => ({ ...current, siteName: event.target.value }))} required /></label><label className="field"><span>Location</span><input value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} /></label><label className="field"><span>Status</span><select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}><option>ACTIVE</option><option>INACTIVE</option></select></label><button className="btn-primary" type="submit">Create site</button></form>
+              <form className="stack-form" onSubmit={createSite}>
+                <label className="field"><span>Site name</span><input value={form.siteName} onChange={(event) => setForm((current) => ({ ...current, siteName: event.target.value }))} required /></label>
+                <label className="field"><span>Location label</span><input value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} placeholder="North Pit" /></label>
+                <div className="form-grid-2">
+                  <label className="field"><span>Latitude</span><input type="number" step="0.000001" min="-90" max="90" value={form.latitude} onChange={(event) => setForm((current) => ({ ...current, latitude: event.target.value }))} placeholder="37.774900" required /></label>
+                  <label className="field"><span>Longitude</span><input type="number" step="0.000001" min="-180" max="180" value={form.longitude} onChange={(event) => setForm((current) => ({ ...current, longitude: event.target.value }))} placeholder="-122.419400" required /></label>
+                </div>
+                <p className="field-hint">Live machinery coordinates inside the configured radius are marked at this site.</p>
+                <label className="field"><span>Status</span><select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}><option>ACTIVE</option><option>ON_HOLD</option><option>COMPLETED</option></select></label>
+                <button className="btn-primary" type="submit">Create site</button>
+              </form>
             </Panel>
           </div>
         </div>

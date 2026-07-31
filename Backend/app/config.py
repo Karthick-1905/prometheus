@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # docker-compose maps container :6379 → host :6380
     redis_url: str = "redis://localhost:6380/0"
     redis_telemetry_channel: str = "telemetry:events"
+    geofence_radius_meters: float = 250.0
+    geofence_batch_size: int = 20
+    geofence_batch_window_ms: int = 1000
 
     # JWT auth (dashboard). Demo login still works without a real user store.
     jwt_secret: str = "dev-cat-smart-rental-secret-change-me"

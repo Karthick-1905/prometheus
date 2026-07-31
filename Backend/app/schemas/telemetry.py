@@ -19,8 +19,8 @@ class TelemetryIn(BaseModel):
     engineHours: float = 0
     idleHours: float = 0
     speed: float = 0
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
     engineTemperature: float = 0
     hydraulicPressure: float = 0
     batteryVoltage: float = 0

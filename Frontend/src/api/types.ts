@@ -107,6 +107,8 @@ export interface Site {
   companyId: number;
   siteName: string;
   location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status?: string | null;
 }
 

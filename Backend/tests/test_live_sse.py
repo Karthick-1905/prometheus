@@ -1,5 +1,7 @@
 """SSE live stream smoke tests."""
 
+from app.api.routes.live import _latest_geofence_coordinates
+
 
 def _collect_sse_text(client, path: str, headers: dict, params: dict | None = None) -> str:
     with client.stream(
@@ -70,3 +72,32 @@ def test_redis_status_endpoint(client, fleet_headers):
     res = client.get("/api/v1/live/redis/status", headers=fleet_headers)
     assert res.status_code == 200
     assert "data" in res.json()
+
+
+def test_geofence_snapshot_keeps_latest_coordinate_per_machine():
+    rows = _latest_geofence_coordinates(
+        [
+            {
+                "type": "GEOFENCE_BATCH",
+                "companyId": 1,
+                "coordinates": [
+                    {"equipmentId": "1", "status": "ACTIVE_WORKING"},
+                    {"equipmentId": "2", "status": "OUTSIDE_SITE"},
+                ],
+            },
+            {
+                "type": "GEOFENCE_BATCH",
+                "companyId": 1,
+                "coordinates": [{"equipmentId": "1", "status": "AT_SITE_IDLE"}],
+            },
+            {
+                "type": "GEOFENCE_BATCH",
+                "companyId": 2,
+                "coordinates": [{"equipmentId": "3", "status": "ACTIVE_WORKING"}],
+            },
+        ],
+        company_id=1,
+    )
+
+    assert {row["equipmentId"] for row in rows} == {"1", "2"}
+    assert next(row for row in rows if row["equipmentId"] == "1")["status"] == "ACTIVE_WORKING"

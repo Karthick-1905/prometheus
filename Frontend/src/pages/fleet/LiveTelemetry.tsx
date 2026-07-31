@@ -25,9 +25,53 @@ type LiveLog = {
   telemetry?: JsonRecord;
 };
 
+type GeofenceCoordinate = {
+  equipmentId: string;
+  internalEquipmentId?: number;
+  equipmentType?: string;
+  operatorId?: string | null;
+  engineStatus?: string | null;
+  latitude: number;
+  longitude: number;
+  siteId?: number | null;
+  siteName?: string | null;
+  status: string;
+  isAtSite: boolean;
+  isActive: boolean;
+  isWorking: boolean;
+  distanceMeters?: number | null;
+  radiusMeters: number;
+  observedAt?: string;
+};
+
 function asLog(data: unknown): LiveLog | null {
   if (!data || typeof data !== 'object') return null;
   return data as LiveLog;
+}
+
+function mergeGeofences(
+  current: GeofenceCoordinate[],
+  incoming: GeofenceCoordinate[],
+): GeofenceCoordinate[] {
+  const latest = new Map(current.map((item) => [item.equipmentId, item]));
+  incoming.forEach((item) => latest.set(item.equipmentId, item));
+  return [...latest.values()]
+    .sort((left, right) => {
+      const leftTime = new Date(left.observedAt ?? 0).getTime();
+      const rightTime = new Date(right.observedAt ?? 0).getTime();
+      return rightTime - leftTime;
+    })
+    .slice(0, 200);
+}
+
+function geofenceLabel(status: string) {
+  if (status === 'ACTIVE_WORKING') return 'At site · working';
+  if (status === 'AT_SITE_IDLE') return 'At site · engine off';
+  if (status === 'OUTSIDE_SITE') return 'Outside site';
+  if (status === 'SITE_COORDINATES_MISSING') return 'Site coordinates missing';
+  if (status === 'LOCATION_INVALID') return 'Invalid coordinates';
+  if (status === 'LOCATION_UNKNOWN') return 'Location unavailable';
+  return 'Site unresolved';
 }
 
 function formatTime(ts?: string) {
@@ -47,6 +91,9 @@ export default function FleetLiveTelemetry() {
   const [streamError, setStreamError] = useState<string | null>(null);
   const [redisInfo, setRedisInfo] = useState<JsonRecord | null>(null);
   const [filterEq, setFilterEq] = useState('');
+  const [geofences, setGeofences] = useState<GeofenceCoordinate[]>([]);
+  const [geofenceConnected, setGeofenceConnected] = useState(false);
+  const [geofenceError, setGeofenceError] = useState<string | null>(null);
   const snapshot = useAsync(() => telemetryApi.snapshot(), []);
   const redisStatus = useAsync(() => liveApi.redisStatus(), []);
 
@@ -116,12 +163,59 @@ export default function FleetLiveTelemetry() {
     return () => controller.abort();
   }, [channel, filterEq]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    setGeofenceError(null);
+    const onEvent = (event: StreamEvent) => {
+      if (event.event === 'geofence.ready') {
+        setGeofenceConnected(true);
+        return;
+      }
+      if (event.event === 'error') {
+        setGeofenceError(
+          String((event.data as { message?: string })?.message ?? 'Geofence stream error'),
+        );
+        return;
+      }
+      if (event.event === 'geofence.snapshot' || event.event === 'geofence.batch') {
+        const coordinates =
+          (event.data as { coordinates?: GeofenceCoordinate[] })?.coordinates ?? [];
+        setGeofences((current) => mergeGeofences(current, coordinates));
+      }
+    };
+    liveApi
+      .geofences(onEvent, controller.signal, 300)
+      .catch((error) => {
+        if (!controller.signal.aborted) setGeofenceError(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setGeofenceConnected(false);
+      });
+    return () => controller.abort();
+  }, []);
+
   const stats = useMemo(() => {
     const telemetry = liveLogs.filter((l) => l.type === 'TELEMETRY_RECEIVED').length;
     const alerts = liveLogs.filter((l) => l.type === 'ALERT_RAISED').length;
     const machines = new Set(liveLogs.map((l) => l.equipmentId).filter(Boolean)).size;
     return { telemetry, alerts, machines, total: liveLogs.length };
   }, [liveLogs]);
+  const geofenceStats = useMemo(
+    () => ({
+      working: geofences.filter((item) => item.status === 'ACTIVE_WORKING').length,
+      atSite: geofences.filter((item) => item.isAtSite).length,
+      outside: geofences.filter((item) => item.status === 'OUTSIDE_SITE').length,
+      unknown: geofences.filter((item) => !item.isAtSite && item.status !== 'OUTSIDE_SITE').length,
+    }),
+    [geofences],
+  );
+  const visibleGeofences = useMemo(
+    () =>
+      filterEq.trim()
+        ? geofences.filter((item) => item.equipmentId.includes(filterEq.trim()))
+        : geofences,
+    [filterEq, geofences],
+  );
 
   return (
     <div>
@@ -183,6 +277,7 @@ export default function FleetLiveTelemetry() {
       )}
 
       {streamError && <FeedbackBanner tone="error">{streamError}</FeedbackBanner>}
+      {geofenceError && <FeedbackBanner tone="warning">{geofenceError}</FeedbackBanner>}
       {!redisInfo?.ok && channel === 'logs' && (
         <FeedbackBanner tone="warning">
           Redis is offline. Start it with <code>cd Backend && make up</code>, then run{' '}
@@ -279,6 +374,66 @@ export default function FleetLiveTelemetry() {
         </Panel>
 
         <div className="stack-panels">
+          <Panel title="Live site presence">
+            <div className="geofence-panel-head">
+              <span className={`connection ${geofenceConnected ? 'is-live' : ''}`}>
+                <i />
+                {geofenceConnected ? 'Geofence stream live' : 'Geofence stream ended'}
+              </span>
+              <span className="geofence-radius">
+                {Math.round(geofences[0]?.radiusMeters ?? 250)} m site radius
+              </span>
+            </div>
+            <div className="geofence-summary" aria-label="Live geofence summary">
+              <div><strong>{geofenceStats.working}</strong><span>Working</span></div>
+              <div><strong>{geofenceStats.atSite}</strong><span>At site</span></div>
+              <div><strong>{geofenceStats.outside}</strong><span>Outside</span></div>
+              <div><strong>{geofenceStats.unknown}</strong><span>Unknown</span></div>
+            </div>
+            {!visibleGeofences.length ? (
+              geofenceConnected ? (
+                <PageSkeleton rows={4} />
+              ) : (
+                <EmptyState
+                  title="No coordinate batches yet"
+                  message="Ingest telemetry with a site ID and GPS coordinates to start live presence checks."
+                />
+              )
+            ) : (
+              <div className="geofence-list" aria-live="polite">
+                {visibleGeofences.slice(0, 20).map((item) => (
+                  <article className="geofence-row" key={item.equipmentId}>
+                    <div className={`geofence-state state-${item.status.toLowerCase()}`}>
+                      <i aria-hidden="true" />
+                      <span>{geofenceLabel(item.status)}</span>
+                    </div>
+                    <div className="geofence-machine">
+                      <strong>
+                        EQ {item.equipmentId}
+                        {item.equipmentType ? ` · ${item.equipmentType}` : ''}
+                      </strong>
+                      <span>{item.siteName ?? 'No assigned site'}</span>
+                    </div>
+                    <dl>
+                      <div>
+                        <dt>Distance</dt>
+                        <dd>
+                          {item.distanceMeters == null
+                            ? '—'
+                            : `${Math.round(item.distanceMeters)} m`}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Coordinates</dt>
+                        <dd>{item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}</dd>
+                      </div>
+                    </dl>
+                    <time>{formatTime(item.observedAt)}</time>
+                  </article>
+                ))}
+              </div>
+            )}
+          </Panel>
           <Panel title="How live logs flow">
             <ol className="howto-list">
               <li>

@@ -82,6 +82,8 @@ def create_site(
         company_id=company_id,
         site_name=body.siteName,
         location=body.location,
+        latitude=body.latitude,
+        longitude=body.longitude,
         status=body.status,
     )
     return {"success": True, "data": site}
