@@ -20,6 +20,7 @@ from app.models.enums import (
     EquipmentStatus,
     ProjectSiteStatus,
     RentalContractStatus,
+    UserRole,
 )
 
 
@@ -107,6 +108,78 @@ class SiteService:
                 continue
             out.append(SiteService._assignment_dict(a))
         return out
+
+    @staticmethod
+    def list_operators(
+        db: Session, *, company_id: Optional[int] = None
+    ) -> list[dict[str, Any]]:
+        """Return site personnel enriched with their current checkout."""
+        users_stmt = select(User).order_by(User.name, User.user_id)
+        if company_id is not None:
+            users_stmt = users_stmt.where(User.company_id == company_id)
+        users = list(db.execute(users_stmt).scalars().all())
+
+        assignments_stmt = (
+            select(EquipmentAssignment)
+            .options(
+                joinedload(EquipmentAssignment.site),
+                joinedload(EquipmentAssignment.contract).joinedload(
+                    RentalContract.equipment
+                ),
+            )
+            .where(EquipmentAssignment.status == AssignmentStatus.ACTIVE)
+            .order_by(EquipmentAssignment.checkout_time.desc())
+        )
+        assignments = list(db.execute(assignments_stmt).unique().scalars().all())
+        active_by_user: dict[int, EquipmentAssignment] = {}
+        actor_ids: set[int] = set()
+        for assignment in assignments:
+            contract = assignment.contract
+            if company_id is not None and contract and contract.company_id != company_id:
+                continue
+            actor_ids.update(
+                actor_id
+                for actor_id in (assignment.assigned_by, assignment.checked_out_by)
+                if actor_id is not None
+            )
+            if assignment.checked_out_by is not None:
+                active_by_user.setdefault(assignment.checked_out_by, assignment)
+
+        rows: list[dict[str, Any]] = []
+        for user in users:
+            if user.role != UserRole.SITE_ENGINEER and user.user_id not in actor_ids:
+                continue
+            assignment = active_by_user.get(user.user_id)
+            equipment = (
+                assignment.contract.equipment
+                if assignment and assignment.contract
+                else None
+            )
+            rows.append(
+                {
+                    "operatorId": f"OP{user.user_id:03d}",
+                    "userId": user.user_id,
+                    "name": user.name,
+                    "email": user.email,
+                    "role": user.role.value if user.role else None,
+                    "availability": "ASSIGNED" if assignment else "AVAILABLE",
+                    "activeAssignmentId": assignment.assignment_id if assignment else None,
+                    "equipmentId": equipment.equipment_id if equipment else None,
+                    "equipmentName": equipment.equipment_name if equipment else None,
+                    "siteId": assignment.site_id if assignment else None,
+                    "siteName": (
+                        assignment.site.site_name
+                        if assignment and assignment.site
+                        else None
+                    ),
+                    "checkedOutAt": (
+                        assignment.checkout_time.isoformat()
+                        if assignment and assignment.checkout_time
+                        else None
+                    ),
+                }
+            )
+        return rows
 
     @staticmethod
     def resolve_equipment_by_code(

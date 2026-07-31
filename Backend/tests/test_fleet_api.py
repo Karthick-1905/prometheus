@@ -57,6 +57,7 @@ def test_fleet_machine_detail_and_telemetry(client, fleet_headers, seed_fleet):
     assert detail.status_code == 200
     body = detail.json()["data"]
     assert body["equipmentId"] == eq_id
+    assert body["operatorId"].startswith("OP")
     assert body["telemetry"] is not None
     assert body["liveStatus"] in {
         "WORKING",

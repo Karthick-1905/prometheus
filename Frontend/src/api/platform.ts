@@ -9,6 +9,7 @@ import type {
   JsonRecord,
   LoginResponse,
   Machine,
+  OperatorRosterEntry,
   Site,
   Telemetry,
 } from './types';
@@ -143,6 +144,7 @@ export const siteApi = {
     request<Envelope<Assignment[]>>(`/api/v1/sites/${siteId}/equipment`),
   assignments: (siteId?: number) =>
     request<Envelope<Assignment[]>>(query('/api/v1/assignments', { siteId })),
+  operators: () => request<Envelope<OperatorRosterEntry[]>>('/api/v1/operators'),
   createAssignment: (body: JsonRecord) =>
     request<Envelope<Assignment>>('/api/v1/assignments', json(body)),
   byQr: (qrCode: string) =>

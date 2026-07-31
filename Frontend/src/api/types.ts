@@ -125,4 +125,19 @@ export interface Assignment {
   checkedOutBy?: number | null;
 }
 
+export interface OperatorRosterEntry {
+  operatorId: string;
+  userId: number;
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+  availability: 'ASSIGNED' | 'AVAILABLE';
+  activeAssignmentId?: number | null;
+  equipmentId?: number | null;
+  equipmentName?: string | null;
+  siteId?: number | null;
+  siteName?: string | null;
+  checkedOutAt?: string | null;
+}
+
 export type JsonRecord = Record<string, unknown>;

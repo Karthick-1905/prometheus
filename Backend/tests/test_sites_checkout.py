@@ -74,6 +74,19 @@ def test_active_checkouts(client, site_headers, seed_fleet):
     assert res.json()["success"] is True
 
 
+def test_operator_roster_is_company_scoped_and_assignment_aware(
+    client, site_headers, seed_fleet
+):
+    res = client.get("/api/v1/operators", headers=site_headers)
+    assert res.status_code == 200
+    rows = res.json()["data"]
+    assert len(rows) == 1
+    assert rows[0]["operatorId"].startswith("OP")
+    assert rows[0]["availability"] == "ASSIGNED"
+    assert rows[0]["equipmentName"] == "CAT 320"
+    assert rows[0]["siteName"] == "North Pit"
+
+
 def test_create_site(client, fleet_headers, seed_fleet):
     res = client.post(
         "/api/v1/sites",

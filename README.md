@@ -67,7 +67,7 @@ Runtime hours, idle hours, fuel, location, and status history support utilizatio
 
 ### Check-in / check-out
 
-Site and operator flows support assignment and a **mock QR scan** path (camera integration can replace the mock later).
+Site and operator flows use persisted assignments plus QR/RFID lookup and check-in/check-out APIs. The demo accepts typed scanner values; a device camera adapter can submit the same identifiers later.
 
 ### Alerts & anomalies
 
@@ -98,7 +98,7 @@ The UI starts with a **role selector** (demo RBAC). Role is stored in the browse
 
 **Every role** also has Profile, Notifications, and Settings.
 
-> Auth note: Backend already exposes JWT helpers for APIs. The login screen currently **simulates** identity via role only so UX and permissions can be demonstrated without a full user directory. Real JWT login can replace the selector later without throwing away the page tree.
+> Auth note: The login screen requests a signed backend JWT for the selected demo workspace. Demo mode accepts any non-empty password; production deployments must connect the same JWT boundary to a real identity provider.
 
 ---
 
@@ -138,7 +138,7 @@ The UI starts with a **role selector** (demo RBAC). Role is stored in the browse
 
 | Layer | Responsibility |
 |-------|----------------|
-| **Frontend** | Role UX, dashboards, forms, mock/live presentation |
+| **Frontend** | Role UX, dashboards, forms, and typed API/SSE integration |
 | **Backend** | Business rules, ML, persistence, HTTP APIs |
 | **Postgres (Neon)** | Source of truth for fleet & alerts |
 | **MQTT worker** | Edge/local ingest of live sensor streams |
@@ -168,7 +168,7 @@ The UI starts with a **role selector** (demo RBAC). Role is stored in the browse
 ### Path C — Dashboard / planning only
 
 1. User opens UI and picks a role  
-2. Screens use mock data and/or REST endpoints (`/api/telemetry`, `/api/alerts`, `/api/demand/*`, fleet APIs, …)  
+2. Screens use REST and SSE endpoints (`/api/telemetry`, `/api/alerts`, `/api/demand/*`, fleet APIs, and live streams)  
 3. Demand and analytics services compute views from DB + synthetic/model artifacts  
 
 ---
@@ -198,7 +198,7 @@ Login (select role)
 | `Frontend/src/context/RoleContext.tsx` | Selected role persistence |
 | `Frontend/src/types/roles.ts` | Nav config + route guards |
 | `Frontend/src/routes/ProtectedRoute.tsx` | Blocks wrong-role URLs |
-| `Frontend/src/mock/data.ts` | Placeholder datasets |
+| `Frontend/src/api/platform.ts` | Typed operational API and SSE clients |
 | `Frontend/src/components/layout/*` | Shell UI |
 | `Frontend/src/components/ui/*` | Stat cards, panels, badges |
 | `Frontend/src/styles/globals.css` | CAT theme tokens |
@@ -210,13 +210,13 @@ Login (select role)
 - Dashboard — KPIs (fleet size, rentals, idle, maintenance, alerts), charts, AI-style recommendations panel  
 - Assets — searchable equipment table (dealer, site, operator, fuel, hours)  
 - Utilization — runtime vs idle, fuel, utilization %  
-- Live Telemetry — per-machine sensor cards (mock/live-ready)  
+- Live Telemetry — live fleet, alert, and Redis-backed machinery event streams  
 - Anomaly Detection — catalog of alert types and active issues  
 
 **Dealer**
 
 - Dashboard — active / returned / available  
-- Rental Operations — contracts list; New / Return / Extend (mock actions)  
+- Rental Operations — persisted contract creation, return, and extension actions  
 - Equipment Inventory — dealer-owned fleet  
 - Customers — account list  
 
@@ -224,13 +224,13 @@ Login (select role)
 
 - Dashboard — machines and operators on site  
 - Operators — roster and shifts  
-- Equipment Assignment — assign / check-in / check-out / reassign (mock)  
+- Equipment Assignment — persisted assign, check-in, check-out, and reassign flows  
 - Site Equipment — runtime, idle, fuel on site  
 
 **Operator**
 
 - Dashboard — assigned machine, site, shift, hours  
-- Scan QR — mock scan result + Check In / Check Out  
+- Scan QR/RFID — identifier verification plus persisted Check In / Check Out  
 - Current Assignment — live job ticket style summary  
 - Activity History — previous days  
 
@@ -543,7 +543,7 @@ Always prefer **Swagger** at `/docs` as the live contract.
 | Data | PostgreSQL, SQLAlchemy, Alembic, Neon |
 | ML | scikit-learn Isolation Forest, joblib; demand model tournament |
 | Streaming | MQTT (paho), optional Redis |
-| Auth | JWT (backend); mock RBAC (frontend demo) |
+| Auth | Signed JWT with demo-workspace login and backend role enforcement |
 | Quality | Pytest on backend |
 
 ---

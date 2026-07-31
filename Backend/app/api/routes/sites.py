@@ -139,6 +139,15 @@ def list_assignments(
     return {"success": True, "data": rows, "meta": {"total": len(rows)}}
 
 
+@router.get("/api/v1/operators")
+def list_operators(
+    db: Session = Depends(get_db),
+    principal: DashboardPrincipal = Depends(_principal),
+):
+    rows = SiteService.list_operators(db, company_id=principal.company_id)
+    return {"success": True, "data": rows, "meta": {"total": len(rows)}}
+
+
 @router.post("/api/v1/assignments")
 def create_assignment(
     body: AssignmentCreate,

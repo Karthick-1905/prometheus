@@ -62,11 +62,12 @@ export default function FleetAssets() {
           ) : (
             <div className="table-wrap">
               <table className="data-table">
-                <thead><tr><th>Asset</th><th>Site</th><th>Rental</th><th>Live status</th><th>Fuel</th><th>Alerts</th><th /></tr></thead>
+                <thead><tr><th>Asset</th><th>Site</th><th>Operator</th><th>Rental</th><th>Live status</th><th>Fuel</th><th>Alerts</th><th /></tr></thead>
                 <tbody>{resource.data.machines.map((machine) => (
                   <tr key={machine.equipmentId}>
                     <td><strong>{machine.equipmentName ?? `Equipment ${machine.equipmentId}`}</strong><small>#{machine.equipmentId} · {machine.equipmentType ?? 'Unknown type'}</small></td>
                     <td>{machine.siteName ?? 'Unassigned'}</td>
+                    <td>{machine.operatorId ?? 'Unassigned'}</td>
                     <td><StatusBadge status={machine.rentalStatus ?? 'UNKNOWN'} /></td>
                     <td><StatusBadge status={machine.liveStatus ?? 'UNKNOWN'} /></td>
                     <td>{machine.telemetry?.fuelLevel == null ? '—' : `${machine.telemetry.fuelLevel.toFixed(0)}%`}</td>
@@ -90,6 +91,7 @@ export default function FleetAssets() {
                 <dl className="detail-grid">
                   <div><dt>Live status</dt><dd><StatusBadge status={selected.liveStatus ?? 'UNKNOWN'} /></dd></div>
                   <div><dt>Site</dt><dd>{selected.siteName ?? 'Unassigned'}</dd></div>
+                  <div><dt>Last operator</dt><dd>{selected.operatorId ?? 'Unassigned'}</dd></div>
                   <div><dt>Contract</dt><dd>#{selected.contractId ?? '—'}</dd></div>
                   <div><dt>Expected return</dt><dd>{selected.expectedReturn ? new Date(selected.expectedReturn).toLocaleDateString() : '—'}</dd></div>
                   <div><dt>Last seen</dt><dd>{selected.lastSeenAt ? new Date(selected.lastSeenAt).toLocaleString() : 'No telemetry'}</dd></div>

@@ -423,11 +423,21 @@ class FleetService:
     ) -> tuple[Optional[ProjectSite], Optional[str]]:
         for a in contract.equipment_assignments or []:
             if a.status == AssignmentStatus.ACTIVE or a.status is None:
-                return a.site, None
+                operator_id = (
+                    f"OP{a.checked_out_by:03d}"
+                    if a.checked_out_by is not None
+                    else None
+                )
+                return a.site, operator_id
         # fallback: latest assignment
         if contract.equipment_assignments:
             a = contract.equipment_assignments[0]
-            return a.site, None
+            operator_id = (
+                f"OP{a.checked_out_by:03d}"
+                if a.checked_out_by is not None
+                else None
+            )
+            return a.site, operator_id
         return None, None
 
     @staticmethod
