@@ -127,6 +127,9 @@ export default function FleetDashboard() {
   const idle = n(totals.idle);
   const off = n(totals.off);
   const overdueStatus = n(totals.overdue);
+  const alertStatus = n(totals.alert);
+  const staleStatus = n(totals.staleTelemetry);
+  const inTransitStatus = n(totals.inTransit);
   const openAlerts = n(totals.withOpenAlerts);
   const criticalAlerts = n(resource.data?.overview.criticalAlerts);
   const utilPct = n(usage.utilizationPct);
@@ -135,6 +138,19 @@ export default function FleetDashboard() {
   const downtimeH = n(usage.totalDowntimeHours);
   const dueSoon = expiring.length;
   const donut = donutStroke(utilPct);
+
+  // Full live-status mix so the chips always sum to machines on rent.
+  const statusMix = (
+    [
+      { label: 'Working', value: working },
+      { label: 'Idle', value: idle },
+      { label: 'Off', value: off },
+      { label: 'In transit', value: inTransitStatus },
+      { label: 'Alert', value: alertStatus },
+      { label: 'Stale', value: staleStatus },
+      { label: 'Overdue', value: overdueStatus },
+    ] as const
+  ).filter((row) => row.value > 0);
 
   const typeBars = [...byType]
     .sort((a, b) => n(b.runtimeHours) - n(a.runtimeHours))
@@ -199,26 +215,22 @@ export default function FleetDashboard() {
           <div className="fd-metrics">
             <article className="fd-metric">
               <div className="fd-metric-top">
-                <span>Active fleet</span>
+                <span>Machines on rent</span>
                 <span className="material-symbols-outlined" aria-hidden="true">
                   construction
                 </span>
               </div>
               <strong>{rented}</strong>
+              <p className="fd-metric-caption">Your company&apos;s active + overdue rentals</p>
               <div className="fd-status-mix" aria-label="Live status mix">
-                <span>
-                  Working <strong>{working}</strong>
-                </span>
-                <span>
-                  Idle <strong>{idle}</strong>
-                </span>
-                <span>
-                  Off <strong>{off}</strong>
-                </span>
-                {overdueStatus > 0 && (
-                  <span>
-                    Overdue <strong>{overdueStatus}</strong>
-                  </span>
+                {statusMix.length === 0 ? (
+                  <span>No machines currently on rent</span>
+                ) : (
+                  statusMix.map((row) => (
+                    <span key={row.label}>
+                      {row.label} <strong>{row.value}</strong>
+                    </span>
+                  ))
                 )}
               </div>
             </article>
