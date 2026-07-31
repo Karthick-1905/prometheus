@@ -67,6 +67,15 @@
   line-height: 1.35;
 }
 
+.fd-metric-caption {
+  margin-top: 4px !important;
+  margin-bottom: 0;
+  font-size: 0.64rem !important;
+  font-weight: 600 !important;
+  color: var(--on-surface-variant);
+  opacity: 0.9;
+}
+
 .fd-metric p em {
   font-style: normal;
   font-weight: 800;

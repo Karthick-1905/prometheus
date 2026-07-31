@@ -236,26 +236,30 @@ def seed(db: Session) -> dict:
     db.flush()
 
     # ── Rental contracts for RENTED units ──────────────────────────
+    # Keep the demo fleet realistic for a fleet manager:
+    # most contracts ACTIVE (future return), a small overdue set, a few completed.
     rented = [e for e in equipments if e.status == EquipmentStatus.RENTED]
     contracts: list[RentalContract] = []
     for i, eq in enumerate(rented):
         company = companies[i % len(companies)]
-        start = now - timedelta(days=rng.randint(5, 45))
-        duration = rng.randint(10, 40)
-        expected = start + timedelta(days=duration)
-        # overdue when expected return is past; otherwise active
-        if expected < now:
-            status = RentalContractStatus.OVERDUE
-        else:
-            status = RentalContractStatus.ACTIVE
+        start = now - timedelta(days=rng.randint(3, 21))
 
-        # a few completed for history
-        if i % 11 == 0:
+        # ~12% overdue (past return), ~10% completed history, rest active with
+        # expected_return still ahead so "machines on rent" is mostly healthy.
+        roll = rng.random()
+        if i % 11 == 0 or roll < 0.10:
             status = RentalContractStatus.COMPLETED
+            expected = start + timedelta(days=rng.randint(7, 18))
             actual = expected - timedelta(days=1)
             if eq.status == EquipmentStatus.RENTED:
                 eq.status = EquipmentStatus.AVAILABLE
+        elif roll < 0.22:
+            status = RentalContractStatus.OVERDUE
+            expected = now - timedelta(days=rng.randint(1, 12))
+            actual = None
         else:
+            status = RentalContractStatus.ACTIVE
+            expected = now + timedelta(days=rng.randint(3, 28))
             actual = None
 
         c = RentalContract(
@@ -351,13 +355,18 @@ def seed(db: Session) -> dict:
         fuel = rng.uniform(25, 95)
 
         for t in range(N_TELEMETRY_PER_EQ):
-            # spread over last ~2 days
-            ts = now - timedelta(minutes=(N_TELEMETRY_PER_EQ - t) * 30 + rng.randint(0, 10))
+            # History spans ~a few hours, but the latest sample must be fresh
+            # (< STALE_AFTER=15m) so fleet live status shows WORKING/IDLE/OFF.
+            if t == N_TELEMETRY_PER_EQ - 1:
+                ts = now - timedelta(minutes=rng.randint(1, 8))
+            else:
+                age_min = (N_TELEMETRY_PER_EQ - t) * 25 + rng.randint(10, 40)
+                ts = now - timedelta(minutes=age_min)
             engine_hours += rng.uniform(0.05, 0.4)
             idle_hours += rng.uniform(0.02, 0.25)
             fuel = max(5.0, fuel - rng.uniform(0.2, 1.5))
 
-            # mix of engine states
+            # mix of engine states — pin latest sample to a stable live posture
             if eq.status == EquipmentStatus.AVAILABLE:
                 eng = "OFF"
                 load = 0.0
@@ -369,11 +378,19 @@ def seed(db: Session) -> dict:
                 speed = 0.0
                 temp = rng.uniform(25, 45)
             else:
-                # rented: 70% ON
-                eng = "ON" if rng.random() < 0.72 else "OFF"
+                # rented: prefer ON for the freshest row so Working/Idle appear
+                if t == N_TELEMETRY_PER_EQ - 1:
+                    eng = "ON" if rng.random() < 0.78 else "OFF"
+                else:
+                    eng = "ON" if rng.random() < 0.72 else "OFF"
                 if eng == "ON":
-                    load = rng.uniform(20, 95)
-                    speed = rng.uniform(0, 18)
+                    # Spread load so IDLE (<15% load, low speed) and WORKING both occur
+                    if t == N_TELEMETRY_PER_EQ - 1 and rng.random() < 0.28:
+                        load = rng.uniform(2, 12)
+                        speed = rng.uniform(0, 0.4)
+                    else:
+                        load = rng.uniform(20, 95)
+                        speed = rng.uniform(0, 18)
                     temp = rng.uniform(75, 108)  # some overheat
                 else:
                     load = 0.0
@@ -414,9 +431,13 @@ def seed(db: Session) -> dict:
     db.flush()
 
     # ── Anomaly alerts ─────────────────────────────────────────────
+    # Keep open CRITICAL/WARNING alerts sparse: live_status elevates those
+    # machines to ALERT and would otherwise hide WORKING/IDLE on the dashboard.
     anomaly_types = list(AnomalyType)
-    severities = [AnomalySeverity.CRITICAL, AnomalySeverity.WARNING, AnomalySeverity.INFO]
     alerts: list[AnomalyAlert] = []
+    rented_ids = [e.equipment_id for e in equipments if e.status == EquipmentStatus.RENTED]
+    # Prefer a small subset of rented machines for open high-severity alerts
+    hot_eq_ids = set(rented_ids[: max(3, len(rented_ids) // 8)]) if rented_ids else set()
     for i in range(N_ALERTS):
         eq = equipments[i % len(equipments)]
         c = contract_by_eq.get(eq.equipment_id)
@@ -424,8 +445,17 @@ def seed(db: Session) -> dict:
         if c and c.contract_id in assignment_by_contract:
             site_id = assignment_by_contract[c.contract_id].site_id
         atype = anomaly_types[i % len(anomaly_types)]
-        sev = severities[i % len(severities)]
-        resolved = rng.random() < 0.25
+
+        if eq.equipment_id in hot_eq_ids and i < 8:
+            sev = AnomalySeverity.CRITICAL if i % 2 == 0 else AnomalySeverity.WARNING
+            resolved = False
+        elif i % 5 == 0:
+            sev = AnomalySeverity.WARNING
+            resolved = rng.random() < 0.55
+        else:
+            sev = AnomalySeverity.INFO
+            resolved = rng.random() < 0.45
+
         alerts.append(
             AnomalyAlert(
                 equipment_id=str(eq.equipment_id),
